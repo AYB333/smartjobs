@@ -19,5 +19,24 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-// Hna kan'3ytou l'Chef (L'Controller) dyal l'offres bach y'3ti lina l'ma3loumat
-Route::get('/offres', [OffreController::class, 'index']); // Hna kan'3ytou l'Chef: "Jbed lina kolchi mn Tllaja"
+// -----------------------------------------------------
+// Phase 3: Job Offers (Offres d'emploi)
+// -----------------------------------------------------
+
+// Public Routes (Anyone can view offers)
+Route::get('/offres', [OffreController::class, 'index']); // Search & list active offers
+Route::get('/offres/{id}', [OffreController::class, 'show']); // View specific offer details
+
+// Protected Routes (Sanctum Required)
+Route::middleware('auth:sanctum')->group(function () {
+    
+    // Recruteur Routes
+    Route::middleware('isRecruteur')->group(function () {
+        Route::get('/mes-offres', [OffreController::class, 'mesOffres']); // View their own offers
+        Route::post('/offres', [OffreController::class, 'store']); // Create new offer
+        Route::put('/offres/{id}', [OffreController::class, 'update']); // Update an offer
+        Route::delete('/offres/{id}', [OffreController::class, 'destroy']); // Delete an offer
+    });
+
+    // Candidat Routes will follow here later for Job Applications (Postulations)
+});
