@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::create('recruteur_profiles', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->string('nom_etablissement');
-            $table->string('ville');
-            $table->enum('type_etablissement', ['café', 'hôtel', 'restaurant']);
+            $table->string('nom_etablissement')->nullable();
+            $table->string('ville')->nullable();
+            $table->enum('type_etablissement', ['cafÃ©', 'hÃ´tel', 'restaurant'])->nullable();
             $table->boolean('is_premium')->default(false);
             $table->dateTime('premium_expires_at')->nullable();
             $table->integer('vues_aujourdhui')->default(0);
