@@ -5,6 +5,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\OffreController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PostulationController;
+use App\Http\Controllers\QuizController;
+use App\Http\Controllers\QuestionController;
+use App\Http\Controllers\QuizAttemptController;
 
 // Public Auth Routes
 Route::post('/auth/register', [AuthController::class, 'register']);
@@ -21,7 +24,7 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 // -----------------------------------------------------
-// Phase 3: Job Offers (Offres d'emploi)
+// Phase 3 & 4: Job Offers, Postulations & Quizzes
 // -----------------------------------------------------
 
 // Public Routes (Anyone can view offers)
@@ -41,6 +44,15 @@ Route::middleware('auth:sanctum')->group(function () {
         // Phase 3: Postulations (Recruteur)
         Route::get('/offres/{id}/postulants', [PostulationController::class, 'postulants']);
         Route::patch('/postulations/{id}/status', [PostulationController::class, 'updateStatus']);
+
+        // Phase 4: Quizzes (Recruteur)
+        Route::post('/offres/{id}/quiz', [QuizController::class, 'store']);
+        Route::get('/offres/{id}/quiz', [QuizController::class, 'show']);
+        Route::delete('/quizzes/{id}', [QuizController::class, 'destroy']);
+        
+        // Phase 4: Questions (Recruteur)
+        Route::post('/quizzes/{id}/questions', [QuestionController::class, 'store']);
+        Route::delete('/questions/{id}', [QuestionController::class, 'destroy']);
     });
 
     // Candidat Routes
@@ -48,5 +60,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // Phase 3: Postulations (Candidat)
         Route::post('/offres/{id}/postuler', [PostulationController::class, 'postuler']);
         Route::get('/mes-postulations', [PostulationController::class, 'mesPostulations']);
+
+        // Phase 4: Quiz Attempt (Candidat)
+        Route::get('/offres/{id}/pass-quiz', [QuizAttemptController::class, 'getQuiz']);
+        Route::post('/offres/{id}/pass-quiz/submit', [QuizAttemptController::class, 'submitQuiz']);
     });
 });
