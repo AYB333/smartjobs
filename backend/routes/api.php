@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\OffreController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PostulationController;
 
 // Public Auth Routes
 Route::post('/auth/register', [AuthController::class, 'register']);
@@ -36,7 +37,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/offres', [OffreController::class, 'store']); // Create new offer
         Route::put('/offres/{id}', [OffreController::class, 'update']); // Update an offer
         Route::delete('/offres/{id}', [OffreController::class, 'destroy']); // Delete an offer
+        
+        // Phase 3: Postulations (Recruteur)
+        Route::get('/offres/{id}/postulants', [PostulationController::class, 'postulants']);
+        Route::patch('/postulations/{id}/status', [PostulationController::class, 'updateStatus']);
     });
 
-    // Candidat Routes will follow here later for Job Applications (Postulations)
+    // Candidat Routes
+    Route::middleware('isCandidat')->group(function () {
+        // Phase 3: Postulations (Candidat)
+        Route::post('/offres/{id}/postuler', [PostulationController::class, 'postuler']);
+        Route::get('/mes-postulations', [PostulationController::class, 'mesPostulations']);
+    });
 });

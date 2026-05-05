@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::create('candidat_profiles', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->string('ville');
-            $table->string('experience');
-            $table->string('poste_recherche');
+            $table->string('ville')->nullable();
+            $table->string('experience')->nullable();
+            $table->string('poste_recherche')->nullable();
             $table->string('cv_path')->nullable();
             $table->string('photo_path')->nullable();
             $table->timestamps();

@@ -27,7 +27,11 @@ class AuthController extends Controller
                 'type_etablissement' => null,
             ]);
         } else {
-            $user->candidatProfile()->create([]);
+            $user->candidatProfile()->create([
+                'ville' => null,
+                'experience' => null,
+                'poste_recherche' => null,
+            ]);
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
