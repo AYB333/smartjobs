@@ -10,12 +10,10 @@ use App\Http\Requests\UpdatePostulationStatusRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
 
 class PostulationController extends Controller
 {
-    /**
-     * Candidat applies to an offer.
-     */
     public function postuler(StorePostulationRequest $request, $id)
     {
         $offre = JobOffer::findOrFail($id);
@@ -26,7 +24,6 @@ class PostulationController extends Controller
 
         $candidat_id = Auth::id();
 
-        // Check if already applied
         $alreadyApplied = Application::where('job_offer_id', $id)
                                      ->where('candidat_id', $candidat_id)
                                      ->exists();
@@ -35,13 +32,10 @@ class PostulationController extends Controller
             return response()->json(['success' => false, 'message' => 'Vous avez deja postule a cette offre.'], 400);
         }
 
-        // Check if offer has quiz (Basic check for now, can be expanded in Quiz phase)
         if ($offre->quiz) {
-            // Ideally here we check if a passing quiz attempt exists in db
             return response()->json(['success' => false, 'message' => 'Cette offre requiert un quiz. Veuillez le completer d abord.'], 403);
         }
 
-        // Upload CV
         $cvPath = null;
         if ($request->hasFile('cv')) {
             $cvPath = $request->file('cv')->store('cvs', 'public');
@@ -61,9 +55,6 @@ class PostulationController extends Controller
         ], 201);
     }
 
-    /**
-     * Candidat sees all his applications.
-     */
     public function mesPostulations()
     {
         $applications = Application::with('jobOffer')
@@ -77,15 +68,28 @@ class PostulationController extends Controller
         ]);
     }
 
-    /**
-     * Recruteur sees all applicants for his offer.
-     */
     public function postulants($id)
     {
         $offre = JobOffer::findOrFail($id);
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
 
-        if ($offre->recruteur_id !== Auth::id()) {
+        if ($offre->recruteur_id !== $user->id) {
             return response()->json(['success' => false, 'message' => 'Non autorise.'], 403);
+        }
+
+        // Phase 5: Premium Quota Logic
+        $isPremium = $user->is_premium && $user->premium_expires_at && Carbon::parse($user->premium_expires_at)->isFuture();
+
+        if (!$isPremium && $user->vues_aujourdhui >= 1) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Quota de vue depasse ! Limite a 1 profil par jour. Passez au Premium pour un acces illimite.'
+            ], 403);
+        }
+
+        if (!$isPremium) {
+            $user->increment('vues_aujourdhui');
         }
 
         $postulants = Application::with('candidat.candidatProfile')
@@ -99,9 +103,6 @@ class PostulationController extends Controller
         ]);
     }
 
-    /**
-     * Recruteur accepts or refuses an application.
-     */
     public function updateStatus(UpdatePostulationStatusRequest $request, $id)
     {
         $application = Application::with('jobOffer')->findOrFail($id);
