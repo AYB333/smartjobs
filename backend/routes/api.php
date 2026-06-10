@@ -1,14 +1,15 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\OffreController;
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\OffreController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PostulationController;
-use App\Http\Controllers\QuizController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\QuizAttemptController;
-use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\QuizController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
@@ -16,6 +17,7 @@ Route::post('/auth/login', [AuthController::class, 'login'])->middleware('thrott
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
+    Route::patch('/auth/me', [AuthController::class, 'updateMe']);
 });
 
 Route::get('/user', function (Request $request) {
@@ -23,6 +25,7 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::get('/offres', [OffreController::class, 'index']);
+Route::get('/offres/filters', [OffreController::class, 'filters']);
 Route::get('/offres/{id}', [OffreController::class, 'show']);
 
 // Phase 5: Webhook
@@ -35,14 +38,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/offres', [OffreController::class, 'store']);
         Route::put('/offres/{id}', [OffreController::class, 'update']);
         Route::delete('/offres/{id}', [OffreController::class, 'destroy']);
-        
+
         Route::get('/offres/{id}/postulants', [PostulationController::class, 'postulants']);
         Route::patch('/postulations/{id}/status', [PostulationController::class, 'updateStatus']);
 
         Route::post('/offres/{id}/quiz', [QuizController::class, 'store']);
         Route::get('/offres/{id}/quiz', [QuizController::class, 'show']);
         Route::delete('/quizzes/{id}', [QuizController::class, 'destroy']);
-        
+
         Route::post('/quizzes/{id}/questions', [QuestionController::class, 'store']);
         Route::delete('/questions/{id}', [QuestionController::class, 'destroy']);
 
@@ -59,5 +62,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/offres/{id}/pass-quiz', [QuizAttemptController::class, 'getQuiz']);
         Route::post('/offres/{id}/pass-quiz/submit', [QuizAttemptController::class, 'submitQuiz']);
+    });
+
+    Route::middleware('isAdmin')->group(function () {
+        Route::get('/admin/stats', [AdminController::class, 'stats']);
+        Route::get('/admin/users', [AdminController::class, 'users']);
+        Route::patch('/admin/offers/{id}/status', [AdminController::class, 'updateOfferStatus']);
     });
 });

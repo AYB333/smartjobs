@@ -14,7 +14,7 @@ class StorePaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'package_type' => 'required|string|in:monthly,yearly'
+            'package_type' => 'required|string|in:monthly,yearly',
         ];
     }
 }

@@ -14,13 +14,13 @@ class UpdateOffreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            "titre_poste" => "sometimes|string|max:255",
-            "description" => "sometimes|string",
-            "ville" => "sometimes|string|max:255",
-            "salaire" => "nullable|numeric|min:0",
-            "type_contrat" => "sometimes|in:CDI,CDD,Extra,Saisonnier",
-            "duree_validite" => "sometimes|in:7,15,30",
-            "status" => "sometimes|in:active,expired,suspended",
+            'titre_poste' => 'sometimes|string|max:255',
+            'description' => 'sometimes|string',
+            'ville' => 'sometimes|string|max:255',
+            'salaire' => 'nullable|numeric|min:0',
+            'type_contrat' => 'sometimes|in:CDI,CDD,Extra,Saisonnier',
+            'duree_validite' => 'sometimes|in:7,15,30',
+            'status' => 'sometimes|in:active,expired,suspended',
         ];
     }
 }

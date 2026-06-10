@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\JobOffer;
-use App\Models\Quiz;
-use App\Models\Question;
-use App\Models\Application;
 use App\Http\Requests\SubmitQuizRequest;
-use Illuminate\Http\Request;
+use App\Models\Application;
+use App\Models\JobOffer;
+use App\Models\Question;
+use App\Models\Quiz;
 use Illuminate\Support\Facades\Auth;
 
 class QuizAttemptController extends Controller
@@ -17,19 +16,19 @@ class QuizAttemptController extends Controller
      */
     public function getQuiz($offerId)
     {
-        $offer = JobOffer::findOrFail($offerId);
-        
+        JobOffer::findOrFail($offerId);
+
         $quiz = Quiz::with(['questions' => function ($query) {
             $query->select('id', 'quiz_id', 'question_text', 'options'); // Do NOT retrieve correct_answer!
         }])->where('job_offer_id', $offerId)->first();
 
-        if (!$quiz) {
+        if (! $quiz) {
             return response()->json(['success' => false, 'message' => 'Aucun test pour cette offre.'], 404);
         }
 
         return response()->json([
             'success' => true,
-            'data' => $quiz
+            'data' => $quiz,
         ]);
     }
 
@@ -38,15 +37,15 @@ class QuizAttemptController extends Controller
      */
     public function submitQuiz(SubmitQuizRequest $request, $offerId)
     {
-        $offer = JobOffer::findOrFail($offerId);
+        JobOffer::findOrFail($offerId);
         $candidatId = Auth::id();
 
         // Ensure candidate applied (Optional, but logical)
         $application = Application::where('job_offer_id', $offerId)
-                                  ->where('candidat_id', $candidatId)
-                                  ->first();
+            ->where('candidat_id', $candidatId)
+            ->first();
 
-        if (!$application) {
+        if (! $application) {
             return response()->json(['success' => false, 'message' => 'Commencez par postuler d abord.'], 403);
         }
 
@@ -56,13 +55,13 @@ class QuizAttemptController extends Controller
         }
 
         $quiz = Quiz::where('job_offer_id', $offerId)->first();
-        if (!$quiz) {
+        if (! $quiz) {
             return response()->json(['success' => false, 'message' => 'Quiz introuvable.'], 404);
         }
 
         $answers = collect($request->validated()['answers']);
         $totalQuestions = Question::where('quiz_id', $quiz->id)->count();
-        
+
         if ($totalQuestions === 0) {
             return response()->json(['success' => false, 'message' => 'Le quiz est vide.'], 400);
         }
@@ -83,7 +82,7 @@ class QuizAttemptController extends Controller
 
         // Update Application
         $application->update([
-            'quiz_score' => round($scorePercentage)
+            'quiz_score' => round($scorePercentage),
         ]);
 
         $passed = round($scorePercentage) >= $quiz->passing_score;
@@ -93,8 +92,8 @@ class QuizAttemptController extends Controller
             'message' => 'Examen soumis avec succes.',
             'data' => [
                 'score' => round($scorePercentage),
-                'passed' => $passed
-            ]
+                'passed' => $passed,
+            ],
         ]);
     }
 }

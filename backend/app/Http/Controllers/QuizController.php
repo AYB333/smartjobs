@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Quiz;
-use App\Models\JobOffer;
 use App\Http\Requests\StoreQuizRequest;
-use Illuminate\Http\Request;
+use App\Models\JobOffer;
+use App\Models\Quiz;
 use Illuminate\Support\Facades\Auth;
 
 class QuizController extends Controller
@@ -13,7 +12,7 @@ class QuizController extends Controller
     public function store(StoreQuizRequest $request, $offerId)
     {
         $offer = JobOffer::findOrFail($offerId);
-        
+
         if ($offer->recruteur_id !== Auth::id()) {
             return response()->json(['success' => false, 'message' => 'Non autorise.'], 403);
         }
@@ -26,34 +25,34 @@ class QuizController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Quiz cree avec succes.',
-            'data' => $quiz
+            'data' => $quiz,
         ], 201);
     }
 
     public function show($offerId)
     {
         $offer = JobOffer::findOrFail($offerId);
-        
+
         if ($offer->recruteur_id !== Auth::id()) {
             return response()->json(['success' => false, 'message' => 'Non autorise.'], 403);
         }
 
         $quiz = Quiz::with('questions')->where('job_offer_id', $offerId)->first();
 
-        if (!$quiz) {
+        if (! $quiz) {
             return response()->json(['success' => false, 'message' => 'Aucun quiz trouve pour cette offre.'], 404);
         }
 
         return response()->json([
             'success' => true,
-            'data' => $quiz
+            'data' => $quiz,
         ]);
     }
 
     public function destroy($quizId)
     {
         $quiz = Quiz::with('jobOffer')->findOrFail($quizId);
-        
+
         if ($quiz->jobOffer->recruteur_id !== Auth::id()) {
             return response()->json(['success' => false, 'message' => 'Non autorise.'], 403);
         }
@@ -62,7 +61,7 @@ class QuizController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Quiz supprime avec succes.'
+            'message' => 'Quiz supprime avec succes.',
         ]);
     }
 }
