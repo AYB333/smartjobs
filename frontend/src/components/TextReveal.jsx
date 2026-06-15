@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 
 export default function TextReveal({ text, className }) {
     const words = text.split(" ");
-    
+
     const container = {
         hidden: { opacity: 0 },
         visible: (i = 1) => ({
@@ -26,7 +26,7 @@ export default function TextReveal({ text, className }) {
 
     return (
         <motion.div
-            className={`flex flex-wrap ${className}`}
+            className={`flex flex-wrap gap-x-[0.25em] gap-y-2 ${className}`}
             variants={container}
             initial="hidden"
             animate="visible"
@@ -34,7 +34,6 @@ export default function TextReveal({ text, className }) {
             {words.map((word, idx) => (
                 <motion.span
                     variants={child}
-                    style={{ marginRight: "0.25em" }}
                     key={idx}
                     className="inline-block"
                 >

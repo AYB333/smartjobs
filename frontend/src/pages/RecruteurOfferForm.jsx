@@ -4,9 +4,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
     CheckCircle2,
     Circle,
+    ImagePlus,
     Plus,
     Trash2,
     WandSparkles,
+    X,
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
@@ -42,6 +44,9 @@ function mapQuestionPayload(question) {
     };
 }
 
+const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_OFFER_IMAGE_SIZE = 2 * 1024 * 1024;
+
 export default function RecruteurOfferForm() {
     const navigate = useNavigate();
     const { id } = useParams();
@@ -51,6 +56,10 @@ export default function RecruteurOfferForm() {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
+    const [imageFile, setImageFile] = useState(null);
+    const [imagePreview, setImagePreview] = useState('');
+    const [existingImageUrl, setExistingImageUrl] = useState('');
+    const [imageInputKey, setImageInputKey] = useState(0);
 
     const [offerForm, setOfferForm] = useState({
         titre_poste: '',
@@ -72,6 +81,14 @@ export default function RecruteurOfferForm() {
         { id: 1, label: "Details de l'offre" },
         { id: 2, label: 'Quiz optionnel' },
     ]), []);
+    const qualityItems = useMemo(() => ([
+        { label: 'Titre clair', done: offerForm.titre_poste.trim().length >= 4 },
+        { label: 'Description detaillee', done: offerForm.description.trim().length >= 80 },
+        { label: 'Salaire indique', done: offerForm.salaire !== '' && Number(offerForm.salaire) > 0 },
+        { label: 'Photo ajoutee', done: Boolean(imageFile || existingImageUrl) },
+        { label: 'Quiz de preselection', done: Boolean(withQuiz && questions.length > 0 && questions[0]?.question_text?.trim()) },
+    ]), [existingImageUrl, imageFile, offerForm.description, offerForm.salaire, offerForm.titre_poste, questions, withQuiz]);
+    const qualityScore = Math.round((qualityItems.filter((item) => item.done).length / qualityItems.length) * 100);
 
     const loadOffer = useCallback(async () => {
         if (!id) return;
@@ -90,6 +107,9 @@ export default function RecruteurOfferForm() {
                 type_contrat: offer?.type_contrat || 'CDI',
                 duree_validite: String(offer?.duree_validite || '15'),
             });
+            setExistingImageUrl(offer?.image_url || '');
+            setImagePreview(offer?.image_url || '');
+            setImageFile(null);
         } catch (requestError) {
             setError(requestError?.response?.data?.message || "Impossible de charger l'offre.");
         } finally {
@@ -105,8 +125,46 @@ export default function RecruteurOfferForm() {
         return () => window.clearTimeout(timeoutId);
     }, [loadOffer]);
 
+    useEffect(() => {
+        return () => {
+            if (imagePreview.startsWith('blob:')) {
+                URL.revokeObjectURL(imagePreview);
+            }
+        };
+    }, [imagePreview]);
+
     const handleOfferField = (field, value) => {
         setOfferForm((prev) => ({ ...prev, [field]: value }));
+    };
+
+    const handleImageChange = (event) => {
+        const file = event.target.files?.[0] ?? null;
+
+        if (!file) {
+            return;
+        }
+
+        if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+            setError('Format image invalide. Utilisez JPG, PNG ou WEBP.');
+            event.target.value = '';
+            return;
+        }
+
+        if (file.size > MAX_OFFER_IMAGE_SIZE) {
+            setError("L'image depasse 2MB.");
+            event.target.value = '';
+            return;
+        }
+
+        setError('');
+        setImageFile(file);
+        setImagePreview(URL.createObjectURL(file));
+    };
+
+    const clearSelectedImage = () => {
+        setImageFile(null);
+        setImagePreview(existingImageUrl || '');
+        setImageInputKey((prev) => prev + 1);
     };
 
     const handleQuizField = (field, value) => {
@@ -188,15 +246,30 @@ export default function RecruteurOfferForm() {
                 ...offerForm,
                 salaire: offerForm.salaire ? Number(offerForm.salaire) : null,
             };
+            const hasImage = Boolean(imageFile);
+            const requestPayload = hasImage ? new FormData() : offerPayload;
+            const multipartConfig = { headers: { 'Content-Type': 'multipart/form-data' } };
+
+            if (hasImage) {
+                Object.entries(offerPayload).forEach(([key, value]) => {
+                    requestPayload.append(key, value === null ? '' : value);
+                });
+                requestPayload.append('image', imageFile);
+            }
 
             if (isEditMode) {
-                await api.put(`/offres/${id}`, offerPayload);
+                if (hasImage) {
+                    requestPayload.append('_method', 'PUT');
+                    await api.post(`/offres/${id}`, requestPayload, multipartConfig);
+                } else {
+                    await api.put(`/offres/${id}`, requestPayload);
+                }
                 setSuccessMessage('Offre mise a jour avec succes.');
                 setTimeout(() => navigate('/recruteur/dashboard', { replace: true }), 900);
                 return;
             }
 
-            const offerResponse = await api.post('/offres', offerPayload);
+            const offerResponse = await api.post('/offres', requestPayload, hasImage ? multipartConfig : undefined);
             const createdOffer = extractEntity(offerResponse?.data);
             offerId = createdOffer?.id;
 
@@ -303,6 +376,38 @@ export default function RecruteurOfferForm() {
                         </div>
                     ) : (
                     <>
+                    <div className="mb-6 rounded-2xl border border-borderGlass bg-obsidian/45 p-4">
+                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                            <div>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-accent">Qualite de l'offre</p>
+                                <h2 className="mt-1 text-xl font-bold text-white">{qualityScore}% complet</h2>
+                                <p className="mt-1 text-sm text-white/55">
+                                    Une offre complete attire plus de candidats et facilite le tri.
+                                </p>
+                            </div>
+                            <div className="min-w-44">
+                                <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                                    <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${qualityScore}%` }} />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                            {qualityItems.map((item) => (
+                                <span
+                                    key={item.label}
+                                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
+                                        item.done
+                                            ? 'border-emerald-400/25 bg-emerald-500/10 text-emerald-200'
+                                            : 'border-white/10 bg-white/5 text-white/45'
+                                    }`}
+                                >
+                                    <CheckCircle2 size={12} />
+                                    {item.label}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+
                     {step === 1 ? (
                         <div className="space-y-5">
                             <div className="grid gap-5 md:grid-cols-2">
@@ -336,6 +441,71 @@ export default function RecruteurOfferForm() {
                                     className="w-full rounded-xl border border-borderGlass bg-obsidian/65 px-4 py-3 text-white focus:border-accent/50 focus:outline-none"
                                     placeholder="Missions, profil recherche, horaires, avantages..."
                                 />
+                            </div>
+
+                            <div className="rounded-2xl border border-dashed border-borderGlass bg-obsidian/45 p-4">
+                                <div className="flex flex-col gap-4 md:flex-row md:items-center">
+                                    <div className="flex h-36 w-full items-center justify-center overflow-hidden rounded-2xl border border-borderGlass bg-white/5 md:w-52">
+                                        {imagePreview ? (
+                                            <img
+                                                src={imagePreview}
+                                                alt="Apercu de l'offre"
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="flex flex-col items-center gap-2 text-white/45">
+                                                <ImagePlus size={24} className="text-accent" />
+                                                <span className="text-xs font-medium">Aucune photo</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex-1">
+                                        <label className="mb-2 block text-xs uppercase tracking-wider text-white/55">Image de l'offre</label>
+                                        <p className="text-sm text-white/65">
+                                            Photo optionnelle de l'établissement ou du lieu de travail.
+                                        </p>
+                                        <p className="mt-1 text-xs text-white/45">
+                                            Le type d'établissement permet d'afficher une image par défaut si aucune photo n'est ajoutée.
+                                        </p>
+                                        <p className="mt-1 text-xs text-white/45">JPG, PNG ou WEBP - 2MB max.</p>
+
+                                        <div className="mt-4 flex flex-wrap items-center gap-3">
+                                            <label
+                                                htmlFor="offer-image-upload"
+                                                className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-borderGlass bg-white/5 px-4 py-2 text-sm font-semibold text-white/80 transition-colors hover:border-accent/50 hover:text-white"
+                                            >
+                                                <ImagePlus size={15} className="text-accent" />
+                                                Choisir une photo
+                                            </label>
+                                            <input
+                                                key={imageInputKey}
+                                                id="offer-image-upload"
+                                                type="file"
+                                                accept="image/jpeg,image/png,image/webp"
+                                                onChange={handleImageChange}
+                                                className="hidden"
+                                            />
+
+                                            {imageFile && (
+                                                <button
+                                                    type="button"
+                                                    onClick={clearSelectedImage}
+                                                    className="inline-flex items-center gap-1.5 rounded-full border border-borderGlass bg-white/5 px-3 py-2 text-xs font-medium text-white/65 transition-colors hover:border-rose-400/40 hover:text-rose-300"
+                                                >
+                                                    <X size={13} />
+                                                    Retirer
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {imageFile && (
+                                            <p className="mt-3 truncate text-xs text-white/55">
+                                                Selection: {imageFile.name}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="grid gap-5 md:grid-cols-3">

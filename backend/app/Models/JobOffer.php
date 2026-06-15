@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @property int $id
@@ -15,7 +16,11 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property string $titre_poste
  * @property string $ville
  * @property string $status
+ * @property string|null $image_path
  * @property CarbonInterface|null $expires_at
+ * @property-read string|null $image_url
+ * @property-read string|null $establishment_name
+ * @property-read string|null $establishment_type
  * @property-read User $recruteur
  * @property-read Quiz|null $quiz
  */
@@ -24,6 +29,31 @@ class JobOffer extends Model
     use HasFactory;
 
     protected $guarded = [];
+
+    protected $appends = ['image_url', 'establishment_name', 'establishment_type'];
+
+    public function getImageUrlAttribute(): ?string
+    {
+        if (! $this->image_path) {
+            return null;
+        }
+
+        $url = Storage::disk('public')->url($this->image_path);
+
+        return str_starts_with($url, 'http://') || str_starts_with($url, 'https://')
+            ? $url
+            : asset($url);
+    }
+
+    public function getEstablishmentNameAttribute(): ?string
+    {
+        return $this->recruteur?->recruteurProfile?->nom_etablissement;
+    }
+
+    public function getEstablishmentTypeAttribute(): ?string
+    {
+        return $this->recruteur?->recruteurProfile?->type_etablissement;
+    }
 
     public function recruteur(): BelongsTo
     {
@@ -38,5 +68,10 @@ class JobOffer extends Model
     public function quiz(): HasOne
     {
         return $this->hasOne(Quiz::class);
+    }
+
+    public function savedByCandidates(): HasMany
+    {
+        return $this->hasMany(SavedJobOffer::class);
     }
 }

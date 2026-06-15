@@ -8,6 +8,7 @@ use App\Models\Application;
 use App\Models\JobOffer;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class PostulationController extends Controller
@@ -20,25 +21,41 @@ class PostulationController extends Controller
             return response()->json(['success' => false, 'message' => 'Cette offre n est plus disponible.'], 400);
         }
 
-        $candidat_id = Auth::id();
+        /** @var User|null $user */
+        $user = Auth::user();
+        $candidat_id = $user?->id;
 
-        $alreadyApplied = Application::where('job_offer_id', $id)
+        $existingApplication = Application::with('jobOffer.quiz')
+            ->where('job_offer_id', $id)
             ->where('candidat_id', $candidat_id)
-            ->exists();
+            ->first();
 
-        if ($alreadyApplied) {
-            return response()->json(['success' => false, 'message' => 'Vous avez deja postule a cette offre.'], 400);
+        if ($existingApplication) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vous avez deja postule a cette offre.',
+                'has_quiz' => $offre->quiz()->exists(),
+                'data' => $existingApplication,
+            ], 409);
         }
 
-        $cvPath = null;
-        if ($request->hasFile('cv')) {
-            $cvPath = $request->file('cv')->store('cvs', 'public');
+        $profile = $user?->candidatProfile;
+        $hasCompleteProfile = $profile
+            && filled($profile->ville)
+            && filled($profile->experience)
+            && filled($profile->poste_recherche);
+
+        if (! $hasCompleteProfile || blank($profile?->cv_path)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Complétez votre profil et ajoutez votre CV avant de postuler.',
+            ], 422);
         }
 
         $application = Application::create([
             'job_offer_id' => $id,
             'candidat_id' => $candidat_id,
-            'cv_path' => $cvPath,
+            'cv_path' => $profile->cv_path,
             'status' => 'en_attente',
         ]);
 
@@ -50,12 +67,14 @@ class PostulationController extends Controller
         ], 201);
     }
 
-    public function mesPostulations()
+    public function mesPostulations(Request $request)
     {
+        $limit = min(max($request->integer('limit', 10), 1), 100);
+
         $applications = Application::with('jobOffer.quiz')
             ->where('candidat_id', Auth::id())
             ->latest()
-            ->paginate(10);
+            ->paginate($limit);
 
         return response()->json([
             'success' => true,

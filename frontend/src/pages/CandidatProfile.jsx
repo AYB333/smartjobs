@@ -1,26 +1,32 @@
 import { useEffect, useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { UploadCloud, FileText, Image as ImageIcon, CheckCircle2 } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import {
+    ArrowRight,
+    CheckCircle2,
+    FileText,
+    UploadCloud,
+    UserRound,
+} from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
+
+const cities = ['Casablanca', 'Rabat', 'Marrakech', 'Agadir', 'Fès', 'Tanger', 'Meknès', 'Oujda', 'Tétouan', 'El Jadida'];
+const experienceOptions = ['Sans expérience', 'Moins de 1 an', '1 à 2 ans', '3 à 5 ans', 'Plus de 5 ans'];
+const positionOptions = ['Serveur', 'Cuisinier', 'Réceptionniste', 'Femme de chambre', 'Plongeur', 'Barman', 'Barista', 'Chef de rang', 'Commis de cuisine', 'Gérant'];
 
 function getBackendBaseUrl() {
     const base = api?.defaults?.baseURL || '';
     return base.replace(/\/api\/?$/, '');
 }
 
-function profileCompletionPercent(user) {
-    const profile = user?.candidatProfile ?? user?.profile ?? {};
-    const fields = [
-        user?.name,
-        user?.email,
-        profile?.ville,
-        profile?.experience,
-        profile?.poste_recherche,
-        profile?.cv_path,
-    ];
-    const completed = fields.filter((value) => value !== null && value !== undefined && String(value).trim() !== '').length;
-    return Math.round((completed / fields.length) * 100);
+function withCurrentValue(options, value) {
+    const normalizedValue = String(value || '').trim();
+    if (!normalizedValue || options.some((option) => option.toLowerCase() === normalizedValue.toLowerCase())) {
+        return options;
+    }
+
+    return [normalizedValue, ...options];
 }
 
 function isPdf(file) {
@@ -29,6 +35,110 @@ function isPdf(file) {
 
 function isValidImage(file) {
     return ['image/jpeg', 'image/jpg', 'image/png'].includes(file?.type);
+}
+
+function buildStorageUrl(baseUrl, path) {
+    if (!path) return '';
+    if (/^https?:\/\//i.test(path)) return path;
+    const cleanPath = String(path).replace(/^\/+/, '');
+    if (cleanPath.startsWith('storage/')) {
+        return `${baseUrl}/${cleanPath}`;
+    }
+    return `${baseUrl}/storage/${cleanPath}`;
+}
+
+function getCandidateProfile(user) {
+    const profile = user?.candidatProfile
+        ?? user?.candidat_profile
+        ?? user?.profile
+        ?? {};
+
+    return {
+        ...profile,
+        cv_path: profile?.cv_path ?? profile?.cvPath ?? '',
+        cv_url: profile?.cv_url ?? profile?.cvUrl ?? '',
+        photo_path: profile?.photo_path ?? profile?.photoPath ?? '',
+        photo_url: profile?.photo_url ?? profile?.photoUrl ?? '',
+    };
+}
+
+function normalizeCandidateUser(user) {
+    if (!user) return null;
+
+    const profile = getCandidateProfile(user);
+
+    return {
+        ...user,
+        profile,
+        candidatProfile: profile,
+        candidat_profile: profile,
+    };
+}
+
+function profileFileUrl(baseUrl, profile, pathKey, urlKey) {
+    return buildStorageUrl(baseUrl, profile?.[urlKey] || profile?.[pathKey]);
+}
+
+function hasProfileFile(profile, pathKey, urlKey) {
+    return Boolean(profile?.[pathKey] || profile?.[urlKey]);
+}
+
+function completionItems(form, currentProfile, cvFile, photoFile) {
+    return [
+        { label: 'Ville', done: Boolean(form.ville.trim()) },
+        { label: 'Expérience', done: Boolean(form.experience.trim()) },
+        { label: 'Poste recherché', done: Boolean(form.poste_recherche.trim()) },
+        { label: 'CV PDF', done: Boolean(cvFile || hasProfileFile(currentProfile, 'cv_path', 'cv_url')) },
+        { label: 'Photo', done: Boolean(photoFile || hasProfileFile(currentProfile, 'photo_path', 'photo_url')), optional: true },
+    ];
+}
+
+function SelectField({ label, value, onChange, options, placeholder }) {
+    return (
+        <label className="block">
+            <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/55">{label}</span>
+            <select
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                className="w-full rounded-2xl border border-borderGlass bg-obsidian/60 px-4 py-3.5 text-sm font-medium text-white outline-none transition-all focus:border-accent/60 focus:bg-obsidian/70 focus:shadow-[0_0_0_4px_rgba(232,101,26,0.12)]"
+            >
+                <option value="">{placeholder}</option>
+                {options.map((option) => (
+                    <option key={option} value={option} className="bg-deepNavy text-white">
+                        {option}
+                    </option>
+                ))}
+            </select>
+        </label>
+    );
+}
+
+function UploadBox({ title, description, status, accept, onFile, onDrop, children }) {
+    return (
+        <label
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={onDrop}
+            className="block cursor-pointer rounded-2xl border border-dashed border-borderGlass bg-obsidian/40 p-4 transition-all hover:border-accent/45 hover:bg-obsidian/55"
+        >
+            <input
+                type="file"
+                accept={accept}
+                className="hidden"
+                onChange={(event) => onFile(event.target.files?.[0])}
+            />
+            <div className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                    <UploadCloud size={18} />
+                </span>
+                <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-white">{title}</p>
+                    <p className="mt-1 text-sm text-white/55">{description}</p>
+                    {status && <p className="mt-2 text-xs font-semibold text-accent">{status}</p>}
+                    {children}
+                </div>
+            </div>
+        </label>
+    );
 }
 
 export default function CandidatProfile() {
@@ -47,10 +157,33 @@ export default function CandidatProfile() {
     const [photoFile, setPhotoFile] = useState(null);
     const [photoPreview, setPhotoPreview] = useState('');
 
-    const currentProfile = currentUser?.candidatProfile ?? currentUser?.profile ?? {};
-    const completion = profileCompletionPercent(currentUser || { profile: form });
-    const currentCvUrl = currentProfile?.cv_path ? `${backendBase}/storage/${currentProfile.cv_path}` : '';
-    const currentPhotoUrl = photoPreview || (currentProfile?.photo_path ? `${backendBase}/storage/${currentProfile.photo_path}` : '');
+    const currentProfile = getCandidateProfile(currentUser);
+    const items = completionItems(form, currentProfile, cvFile, photoFile);
+    const completedCount = items.filter((item) => item.done).length;
+    const completion = Math.round((completedCount / items.length) * 100);
+    const currentCvUrl = profileFileUrl(backendBase, currentProfile, 'cv_path', 'cv_url');
+    const currentPhotoUrl = photoPreview || profileFileUrl(backendBase, currentProfile, 'photo_path', 'photo_url');
+    const hasCoreProfile = Boolean(form.ville.trim() && form.experience.trim() && form.poste_recherche.trim());
+    const hasSavedCv = hasProfileFile(currentProfile, 'cv_path', 'cv_url');
+    const hasSavedPhoto = hasProfileFile(currentProfile, 'photo_path', 'photo_url');
+    const hasCvReady = Boolean(cvFile || hasSavedCv);
+    const canSeeRecommendations = Boolean(form.ville.trim() && form.poste_recherche.trim());
+    const recommendedJobsUrl = `/jobs?ville=${encodeURIComponent(form.ville)}&search=${encodeURIComponent(form.poste_recherche)}`;
+    const cityOptions = withCurrentValue(cities, form.ville);
+    const mappedExperienceOptions = withCurrentValue(experienceOptions, form.experience);
+    const mappedPositionOptions = withCurrentValue(positionOptions, form.poste_recherche);
+
+    const nextAction = useMemo(() => {
+        if (!hasCoreProfile) {
+            return 'Complétez vos informations';
+        }
+
+        if (!hasCvReady) {
+            return 'Ajoutez votre CV';
+        }
+
+        return 'Profil prêt pour postuler';
+    }, [hasCoreProfile, hasCvReady]);
 
     useEffect(() => {
         const loadProfile = async () => {
@@ -58,14 +191,17 @@ export default function CandidatProfile() {
             setError('');
             try {
                 const response = await api.get('/auth/me');
-                const user = response?.data?.user;
+                const user = normalizeCandidateUser(response?.data?.user);
+                const profile = getCandidateProfile(user);
                 setCurrentUser(user);
                 setForm({
-                    ville: user?.candidatProfile?.ville || '',
-                    experience: user?.candidatProfile?.experience || '',
-                    poste_recherche: user?.candidatProfile?.poste_recherche || '',
+                    ville: profile?.ville || '',
+                    experience: profile?.experience || '',
+                    poste_recherche: profile?.poste_recherche || '',
                 });
-                localStorage.setItem('user', JSON.stringify(user));
+                if (user) {
+                    localStorage.setItem('user', JSON.stringify(user));
+                }
             } catch (requestError) {
                 setError(requestError?.response?.data?.message || 'Impossible de charger le profil.');
             } finally {
@@ -76,14 +212,26 @@ export default function CandidatProfile() {
         loadProfile();
     }, []);
 
+    useEffect(() => {
+        return () => {
+            if (photoPreview.startsWith('blob:')) {
+                URL.revokeObjectURL(photoPreview);
+            }
+        };
+    }, [photoPreview]);
+
+    const setField = (field, value) => {
+        setForm((previous) => ({ ...previous, [field]: value }));
+    };
+
     const handleCvSelection = (file) => {
         if (!file) return;
         if (!isPdf(file)) {
-            setError('Le CV doit etre un PDF.');
+            setError('Le CV doit être un PDF.');
             return;
         }
         if (file.size > 2 * 1024 * 1024) {
-            setError('Le CV depasse 2MB.');
+            setError('Le CV dépasse 2MB.');
             return;
         }
         setError('');
@@ -93,11 +241,11 @@ export default function CandidatProfile() {
     const handlePhotoSelection = (file) => {
         if (!file) return;
         if (!isValidImage(file)) {
-            setError('La photo doit etre en JPEG ou PNG.');
+            setError('La photo doit être en JPEG ou PNG.');
             return;
         }
         if (file.size > 2 * 1024 * 1024) {
-            setError('La photo depasse 2MB.');
+            setError('La photo dépasse 2MB.');
             return;
         }
         setError('');
@@ -105,20 +253,24 @@ export default function CandidatProfile() {
         setPhotoPreview(URL.createObjectURL(file));
     };
 
-    const onCvDrop = (event) => {
-        event.preventDefault();
-        handleCvSelection(event.dataTransfer.files?.[0]);
-    };
-
-    const onPhotoDrop = (event) => {
-        event.preventDefault();
-        handlePhotoSelection(event.dataTransfer.files?.[0]);
-    };
-
     const saveProfile = async (event) => {
         event.preventDefault();
-        setSaving(true);
         setError('');
+
+        if (!form.ville.trim()) {
+            setError('La ville est requise.');
+            return;
+        }
+        if (!form.experience.trim()) {
+            setError("L'expérience est requise.");
+            return;
+        }
+        if (!form.poste_recherche.trim()) {
+            setError('Le poste recherché est requis.');
+            return;
+        }
+
+        setSaving(true);
 
         const payload = new FormData();
         payload.append('ville', form.ville);
@@ -126,16 +278,28 @@ export default function CandidatProfile() {
         payload.append('poste_recherche', form.poste_recherche);
         if (cvFile) payload.append('cv', cvFile);
         if (photoFile) payload.append('photo', photoFile);
+        payload.append('_method', 'PATCH');
 
         try {
-            const response = await api.patch('/auth/me', payload, {
+            const response = await api.post('/auth/me', payload, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
 
-            const user = response?.data?.user;
+            const user = normalizeCandidateUser(response?.data?.user);
+            const profile = getCandidateProfile(user);
             setCurrentUser(user);
-            localStorage.setItem('user', JSON.stringify(user));
-            setToast('Profil mis a jour avec succes.');
+            setForm({
+                ville: profile?.ville || form.ville,
+                experience: profile?.experience || form.experience,
+                poste_recherche: profile?.poste_recherche || form.poste_recherche,
+            });
+            if (user) {
+                localStorage.setItem('user', JSON.stringify(user));
+            }
+            setCvFile(null);
+            setPhotoFile(null);
+            setPhotoPreview('');
+            setToast('Profil mis à jour avec succès.');
             setTimeout(() => setToast(''), 2500);
         } catch (requestError) {
             setError(requestError?.response?.data?.message || 'Erreur lors de la sauvegarde du profil.');
@@ -148,14 +312,17 @@ export default function CandidatProfile() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen bg-obsidian">
             <Navbar />
 
-            <main className="container mx-auto px-6 pt-32 pb-16">
-                <section className="mb-8">
-                    <h1 className="text-4xl font-black text-white">Mon Profil</h1>
-                    <p className="mt-2 text-white/60">Mettez a jour votre profil candidat pour augmenter vos chances.</p>
+            <main className="container mx-auto px-5 pt-28 pb-14 sm:px-6 lg:pt-32">
+                <section className="mb-7 max-w-4xl">
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-accent">Profil candidat</p>
+                    <h1 className="text-3xl font-black leading-tight text-white md:text-4xl">Préparez votre profil pour postuler</h1>
+                    <p className="mt-3 max-w-3xl text-base leading-relaxed text-white/62">
+                        Complétez vos informations professionnelles et ajoutez votre CV une seule fois. SmartJobs utilisera ce profil pour vos candidatures et vos recommandations.
+                    </p>
                 </section>
 
                 {error && (
-                    <div className="mb-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-5 py-4 text-rose-200">
+                    <div className="mb-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-5 py-4 text-sm font-medium text-rose-200">
                         {error}
                     </div>
                 )}
@@ -166,121 +333,190 @@ export default function CandidatProfile() {
                         <p className="text-white/60">Chargement du profil...</p>
                     </div>
                 ) : (
-                    <div className="grid gap-8 lg:grid-cols-3">
-                        <section className="lg:col-span-2 rounded-3xl border border-borderGlass bg-surface p-6 md:p-8">
-                            <h2 className="text-lg font-semibold text-white mb-5">Informations personnelles</h2>
+                    <form onSubmit={saveProfile} className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_390px]">
+                        <section className="space-y-6">
+                            <div className="rounded-3xl border border-borderGlass bg-surface p-5 shadow-[0_18px_50px_rgba(0,0,0,0.12)] md:p-7">
+                                <div className="mb-6 border-b border-borderGlass pb-5">
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-accent">Étape 1</p>
+                                    <h2 className="mt-1 text-xl font-bold text-white">Informations professionnelles</h2>
+                                    <p className="mt-1 text-sm text-white/58">Ces champs aident à trouver des offres cohérentes avec votre profil.</p>
+                                </div>
 
-                            <form onSubmit={saveProfile} className="space-y-5">
-                                <div>
-                                    <label className="mb-2 block text-xs uppercase tracking-wider text-white/55">Ville</label>
-                                    <input
+                                <div className="grid gap-5 md:grid-cols-2">
+                                    <SelectField
+                                        label="Ville"
                                         value={form.ville}
-                                        onChange={(event) => setForm((prev) => ({ ...prev, ville: event.target.value }))}
-                                        className="w-full rounded-xl border border-borderGlass bg-obsidian/60 px-4 py-3 text-white focus:border-accent/50 focus:outline-none"
-                                        placeholder="Casablanca"
+                                        onChange={(value) => setField('ville', value)}
+                                        options={cityOptions}
+                                        placeholder="Choisir une ville"
                                     />
-                                </div>
-
-                                <div>
-                                    <label className="mb-2 block text-xs uppercase tracking-wider text-white/55">Experience</label>
-                                    <input
+                                    <SelectField
+                                        label="Expérience"
                                         value={form.experience}
-                                        onChange={(event) => setForm((prev) => ({ ...prev, experience: event.target.value }))}
-                                        className="w-full rounded-xl border border-borderGlass bg-obsidian/60 px-4 py-3 text-white focus:border-accent/50 focus:outline-none"
-                                        placeholder="2 ans en hotellerie"
+                                        onChange={(value) => setField('experience', value)}
+                                        options={mappedExperienceOptions}
+                                        placeholder="Choisir une expérience"
                                     />
+                                    <div className="md:col-span-2">
+                                        <SelectField
+                                            label="Poste recherché"
+                                            value={form.poste_recherche}
+                                            onChange={(value) => setField('poste_recherche', value)}
+                                            options={mappedPositionOptions}
+                                            placeholder="Choisir un poste"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="rounded-3xl border border-borderGlass bg-surface p-5 shadow-[0_18px_50px_rgba(0,0,0,0.12)] md:p-7">
+                                <div className="mb-6 border-b border-borderGlass pb-5">
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-accent">Étape 2</p>
+                                    <h2 className="mt-1 text-xl font-bold text-white">Documents</h2>
+                                    <p className="mt-1 text-sm text-white/58">Le CV est requis pour postuler. La photo reste optionnelle.</p>
                                 </div>
 
-                                <div>
-                                    <label className="mb-2 block text-xs uppercase tracking-wider text-white/55">Poste recherche</label>
-                                    <input
-                                        value={form.poste_recherche}
-                                        onChange={(event) => setForm((prev) => ({ ...prev, poste_recherche: event.target.value }))}
-                                        className="w-full rounded-xl border border-borderGlass bg-obsidian/60 px-4 py-3 text-white focus:border-accent/50 focus:outline-none"
-                                        placeholder="Receptionniste"
-                                    />
-                                </div>
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <UploadBox
+                                        title={cvFile ? cvFile.name : hasSavedCv ? 'CV ajouté' : 'Ajouter mon CV PDF'}
+                                        description="PDF max 2MB."
+                                        status="Ce CV sera réutilisé automatiquement pour vos postulations."
+                                        accept="application/pdf,.pdf"
+                                        onFile={handleCvSelection}
+                                        onDrop={(event) => {
+                                            event.preventDefault();
+                                            handleCvSelection(event.dataTransfer.files?.[0]);
+                                        }}
+                                    >
+                                        {currentCvUrl && (
+                                            <a
+                                                href={currentCvUrl}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                onClick={(event) => event.stopPropagation()}
+                                                className="mt-3 inline-flex items-center gap-2 rounded-full border border-borderGlass bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/80 transition-colors hover:border-accent/45 hover:text-white"
+                                            >
+                                                <FileText size={13} />
+                                                Voir le CV actuel
+                                            </a>
+                                        )}
+                                    </UploadBox>
 
+                                    <UploadBox
+                                        title={photoFile ? photoFile.name : hasSavedPhoto ? 'Photo ajoutée' : 'Ajouter une photo'}
+                                        description="Ajoutez une photo professionnelle claire. Formats JPG/PNG, max 2MB."
+                                        status={photoFile || hasSavedPhoto ? 'Remplacer la photo' : ''}
+                                        accept="image/jpeg,image/png"
+                                        onFile={handlePhotoSelection}
+                                        onDrop={(event) => {
+                                            event.preventDefault();
+                                            handlePhotoSelection(event.dataTransfer.files?.[0]);
+                                        }}
+                                    >
+                                        {currentPhotoUrl && (
+                                            <img
+                                                src={currentPhotoUrl}
+                                                alt="Aperçu photo profil"
+                                                className="hidden"
+                                            />
+                                        )}
+                                    </UploadBox>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-3 sm:flex-row">
                                 <button
                                     type="submit"
                                     disabled={saving}
-                                    className="rounded-xl bg-accent px-6 py-3 text-sm font-semibold text-white hover:bg-accent/90 disabled:opacity-70"
+                                    className="inline-flex items-center justify-center rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-[0_14px_32px_rgba(232,101,26,0.22)] transition-colors hover:bg-accent/90 disabled:opacity-70"
                                 >
-                                    {saving ? 'Enregistrement...' : 'Sauvegarder le profil'}
+                                    {saving ? 'Enregistrement...' : 'Enregistrer mon profil'}
                                 </button>
-                            </form>
+                                {canSeeRecommendations && (
+                                    <Link
+                                        to={recommendedJobsUrl}
+                                        className="inline-flex items-center justify-center gap-2 rounded-full border border-borderGlass bg-surface px-6 py-3 text-sm font-semibold text-white/80 transition-colors hover:border-accent/50 hover:text-white"
+                                    >
+                                        Voir les offres recommandées
+                                        <ArrowRight size={15} />
+                                    </Link>
+                                )}
+                            </div>
                         </section>
 
-                        <aside className="lg:col-span-1 space-y-6">
-                            <div className="rounded-3xl border border-borderGlass bg-surface p-6">
-                                <h3 className="text-lg font-semibold text-white mb-4">Completion du profil</h3>
-                                <div className="mb-2 flex justify-between text-xs uppercase tracking-wider text-white/55">
-                                    <span>Progression</span>
-                                    <span>{completion}%</span>
+                        <aside className="space-y-5 lg:sticky lg:top-28 lg:self-start">
+                            <div className="rounded-3xl border border-borderGlass bg-surface p-5 shadow-[0_18px_50px_rgba(0,0,0,0.12)]">
+                                <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                        <p className="text-xs font-semibold uppercase tracking-wider text-accent">Progression</p>
+                                        <h3 className="mt-1 text-lg font-bold text-white">{nextAction}</h3>
+                                    </div>
+                                    <span className="text-2xl font-black text-white">{completion}%</span>
                                 </div>
-                                <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                                <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
                                     <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${completion}%` }} />
                                 </div>
+                                <div className="mt-5 space-y-2">
+                                    {items.map((item) => (
+                                        <div key={item.label} className="flex items-center justify-between gap-3 rounded-xl border border-borderGlass bg-white/5 px-3 py-2.5">
+                                            <span className="text-sm font-medium text-white/74">
+                                                {item.label}{item.optional ? ' (optionnel)' : ''}
+                                            </span>
+                                            <CheckCircle2 size={16} className={item.done ? 'text-emerald-300' : 'text-white/30'} />
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
 
-                            <div className="rounded-3xl border border-borderGlass bg-surface p-6">
-                                <h3 className="text-lg font-semibold text-white mb-4">CV (PDF)</h3>
-                                <label
-                                    onDragOver={(event) => event.preventDefault()}
-                                    onDrop={onCvDrop}
-                                    className="block rounded-2xl border border-dashed border-borderGlass bg-obsidian/40 p-4 text-center cursor-pointer hover:border-accent/50 transition-colors"
-                                >
-                                    <input
-                                        type="file"
-                                        accept="application/pdf,.pdf"
-                                        className="hidden"
-                                        onChange={(event) => handleCvSelection(event.target.files?.[0])}
-                                    />
-                                    <UploadCloud size={18} className="mx-auto mb-2 text-accent" />
-                                    <p className="text-sm text-white/80">{cvFile ? cvFile.name : 'Glissez-deposez votre CV ou cliquez'}</p>
-                                    <p className="mt-1 text-xs text-white/50">PDF max 2MB</p>
-                                </label>
+                            <div className="rounded-3xl border border-borderGlass bg-surface p-5 shadow-[0_18px_50px_rgba(0,0,0,0.12)]">
+                                <p className="text-xs font-semibold uppercase tracking-wider text-accent">Aperçu recruteur</p>
+                                <div className="mt-5 flex items-center gap-4">
+                                    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-borderGlass bg-white/5">
+                                        {currentPhotoUrl ? (
+                                            <img src={currentPhotoUrl} alt="Photo candidat" className="h-full w-full object-cover" />
+                                        ) : (
+                                            <UserRound size={25} className="text-accent" />
+                                        )}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="truncate text-lg font-bold text-white">{currentUser?.name || 'Candidat SmartJobs'}</p>
+                                        <p className="mt-1 truncate text-sm text-white/58">{form.poste_recherche || 'Poste recherché non renseigné'}</p>
+                                    </div>
+                                </div>
 
-                                {currentCvUrl && (
-                                    <a
-                                        href={currentCvUrl}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="mt-3 inline-flex items-center gap-2 rounded-full border border-borderGlass bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:text-white hover:border-accent/40"
-                                    >
-                                        <FileText size={13} />
-                                        Voir le CV actuel
-                                    </a>
-                                )}
+                                <div className="mt-5 grid gap-3 text-sm">
+                                    <div className="flex items-center justify-between gap-3 border-b border-borderGlass pb-3">
+                                        <span className="text-white/50">Ville</span>
+                                        <span className="text-right font-semibold text-white">{form.ville || 'Non renseignée'}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-3 border-b border-borderGlass pb-3">
+                                        <span className="text-white/50">Expérience</span>
+                                        <span className="text-right font-semibold text-white">{form.experience || 'Non renseignée'}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-3">
+                                        <span className="text-white/50">CV</span>
+                                        <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+                                            hasCvReady
+                                                ? 'bg-emerald-500/12 text-emerald-200'
+                                                : 'bg-amber-500/12 text-amber-200'
+                                        }`}>
+                                            <FileText size={13} />
+                                            {hasCvReady ? 'Ajouté' : 'Manquant'}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="rounded-3xl border border-borderGlass bg-surface p-6">
-                                <h3 className="text-lg font-semibold text-white mb-4">Photo profil</h3>
-                                <label
-                                    onDragOver={(event) => event.preventDefault()}
-                                    onDrop={onPhotoDrop}
-                                    className="block rounded-2xl border border-dashed border-borderGlass bg-obsidian/40 p-4 text-center cursor-pointer hover:border-accent/50 transition-colors"
-                                >
-                                    <input
-                                        type="file"
-                                        accept="image/jpeg,image/png"
-                                        className="hidden"
-                                        onChange={(event) => handlePhotoSelection(event.target.files?.[0])}
-                                    />
-                                    <ImageIcon size={18} className="mx-auto mb-2 text-accent" />
-                                    <p className="text-sm text-white/80">{photoFile ? photoFile.name : 'JPEG/PNG max 2MB'}</p>
-                                </label>
-
-                                {currentPhotoUrl && (
-                                    <img
-                                        src={currentPhotoUrl}
-                                        alt="Apercu photo profil"
-                                        className="mt-4 h-36 w-full rounded-2xl object-cover border border-borderGlass"
-                                    />
-                                )}
+                            <div className="rounded-2xl border border-borderGlass bg-white/5 p-4">
+                                <p className="text-sm font-semibold text-white">
+                                    Conseil
+                                </p>
+                                <p className="mt-2 text-xs leading-relaxed text-white/60">
+                                    Un profil clair avec CV permet de postuler plus vite et donne aux recruteurs les informations essentielles sans formulaire répété.
+                                </p>
                             </div>
                         </aside>
-                    </div>
+                    </form>
                 )}
             </main>
 

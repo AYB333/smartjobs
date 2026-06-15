@@ -13,8 +13,6 @@ class StorePostulationRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
-            'cv' => 'required|file|mimes:pdf|max:2048',
-        ];
+        return [];
     }
 }

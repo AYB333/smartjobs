@@ -21,6 +21,7 @@ class UpdateOffreRequest extends FormRequest
             'type_contrat' => 'sometimes|in:CDI,CDD,Extra,Saisonnier',
             'duree_validite' => 'sometimes|in:7,15,30',
             'status' => 'sometimes|in:active,expired,suspended',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ];
     }
 }

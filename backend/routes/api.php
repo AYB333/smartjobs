@@ -8,6 +8,7 @@ use App\Http\Controllers\PostulationController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\QuizAttemptController;
 use App\Http\Controllers\QuizController;
+use App\Http\Controllers\SavedJobOfferController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -59,6 +60,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('isCandidat')->group(function () {
         Route::post('/offres/{id}/postuler', [PostulationController::class, 'postuler']);
         Route::get('/mes-postulations', [PostulationController::class, 'mesPostulations']);
+        Route::get('/saved-offers', [SavedJobOfferController::class, 'index']);
+        Route::post('/offres/{id}/save', [SavedJobOfferController::class, 'store']);
+        Route::delete('/offres/{id}/save', [SavedJobOfferController::class, 'destroy']);
 
         Route::get('/offres/{id}/pass-quiz', [QuizAttemptController::class, 'getQuiz']);
         Route::post('/offres/{id}/pass-quiz/submit', [QuizAttemptController::class, 'submitQuiz']);

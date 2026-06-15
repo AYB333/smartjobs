@@ -9,6 +9,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class OffreController extends Controller
 {
@@ -98,11 +99,16 @@ class OffreController extends Controller
     public function store(StoreOffreRequest $request)
     {
         $validated = $request->validated();
+        unset($validated['image']);
 
         // Calculate expires_at
         $validated['expires_at'] = Carbon::now()->addDays((int) $validated['duree_validite']);
         $validated['recruteur_id'] = Auth::id();
         $validated['status'] = 'active';
+
+        if ($request->hasFile('image')) {
+            $validated['image_path'] = $request->file('image')->store('job-offers', 'public');
+        }
 
         $offre = JobOffer::create($validated);
 
@@ -133,7 +139,10 @@ class OffreController extends Controller
      */
     public function mesOffres()
     {
-        $offres = JobOffer::withCount('applications')
+        $offres = JobOffer::with(['applications' => function ($query) {
+                $query->with('candidat.candidatProfile')->latest();
+            }])
+            ->withCount('applications')
             ->withExists('quiz')
             ->where('recruteur_id', Auth::id())
             ->latest()
@@ -157,9 +166,18 @@ class OffreController extends Controller
         }
 
         $validated = $request->validated();
+        unset($validated['image']);
 
         if (isset($validated['duree_validite']) && $validated['duree_validite'] !== $offre->duree_validite) {
             $validated['expires_at'] = Carbon::parse($offre->created_at)->addDays((int) $validated['duree_validite']);
+        }
+
+        if ($request->hasFile('image')) {
+            if ($offre->image_path) {
+                Storage::disk('public')->delete($offre->image_path);
+            }
+
+            $validated['image_path'] = $request->file('image')->store('job-offers', 'public');
         }
 
         $offre->update($validated);
@@ -180,6 +198,10 @@ class OffreController extends Controller
 
         if ($offre->recruteur_id !== Auth::id()) {
             return response()->json(['success' => false, 'message' => 'Non autorise.'], 403);
+        }
+
+        if ($offre->image_path) {
+            Storage::disk('public')->delete($offre->image_path);
         }
 
         $offre->delete();

@@ -20,6 +20,7 @@ class StoreOffreRequest extends FormRequest
             'salaire' => 'nullable|numeric|min:0',
             'type_contrat' => 'required|in:CDI,CDD,Extra,Saisonnier',
             'duree_validite' => 'required|in:7,15,30',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ];
     }
 }
