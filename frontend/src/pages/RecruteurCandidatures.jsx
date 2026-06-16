@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import ApplicationChat from '../components/ApplicationChat';
 import Navbar from '../components/Navbar';
+import SmartSelect from '../components/SmartSelect';
 import api from '../api/axios';
 import { useToast } from '../context/useAppExperience';
 
@@ -72,10 +73,10 @@ function toTimestamp(dateString) {
     return Number.isNaN(time) ? 0 : time;
 }
 
-function toReadableStatus(status) {
-    if (status === 'en_attente') return 'En attente';
-    if (status === 'acceptee') return 'Acceptée';
-    if (status === 'refusee') return 'Refusée';
+function toReadableStatus(status, t) {
+    if (status === 'en_attente') return t('status.pending');
+    if (status === 'acceptee') return t('status.accepted');
+    if (status === 'refusee') return t('status.rejected');
     return status ?? '-';
 }
 
@@ -197,8 +198,8 @@ function SummaryPill({ label, value, tone = 'default' }) {
 }
 
 export default function RecruteurCandidatures() {
+    const { showToast, t } = useToast();
     const [searchParams, setSearchParams] = useSearchParams();
-    const { showToast } = useToast();
     const [offers, setOffers] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -219,11 +220,11 @@ export default function RecruteurCandidatures() {
             const offersResponse = await api.get('/mes-offres');
             setOffers(extractPaginatedList(offersResponse?.data));
         } catch (requestError) {
-            setError(requestError?.response?.data?.message || 'Impossible de charger les candidatures.');
+            setError(requestError?.response?.data?.message || t('recruiter.applications.loading'));
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [t]);
 
     useEffect(() => {
         const timeoutId = window.setTimeout(() => {
@@ -310,8 +311,8 @@ export default function RecruteurCandidatures() {
 
             showToast({
                 type: 'success',
-                title: 'Candidature',
-                message: status === 'acceptee' ? 'Candidat accepté.' : 'Candidat refusé.',
+                title: t('candidate.dashboard.applications'),
+                message: status === 'acceptee' ? t('recruiter.applications.accept') : t('recruiter.applications.reject'),
             });
         } catch (requestError) {
             const message = requestError?.response?.data?.message || 'Echec de la mise a jour du statut.';
@@ -353,18 +354,18 @@ export default function RecruteurCandidatures() {
                     >
                         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_560px] lg:items-end">
                             <div>
-                                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent">Espace recruteur</p>
-                                <h1 className="mt-3 text-3xl font-black text-white md:text-5xl">Candidatures reçues</h1>
+                                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent">{t('recruiter.dashboard.kicker')}</p>
+                                <h1 className="mt-3 text-3xl font-black text-white md:text-5xl">{t('recruiter.applications.title')}</h1>
                                 <p className="mt-3 max-w-2xl text-base text-white/60 md:text-lg">
-                                    Analysez les profils, CV et scores de quiz de vos candidats.
+                                    {t('recruiter.applications.subtitle')}
                                 </p>
                             </div>
 
                             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                                 <SummaryPill label="Total" value={summary.total} />
-                                <SummaryPill label="En attente" value={summary.pending} tone="pending" />
-                                <SummaryPill label="Acceptées" value={summary.accepted} tone="accepted" />
-                                <SummaryPill label="Refusées" value={summary.rejected} tone="rejected" />
+                                <SummaryPill label={t('status.pending')} value={summary.pending} tone="pending" />
+                                <SummaryPill label={t('status.accepted')} value={summary.accepted} tone="accepted" />
+                                <SummaryPill label={t('status.rejected')} value={summary.rejected} tone="rejected" />
                             </div>
                         </div>
                     </motion.section>
@@ -384,9 +385,9 @@ export default function RecruteurCandidatures() {
                     >
                         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                             <div>
-                                <h2 className="text-xl font-bold text-white">Filtrer les candidatures</h2>
+                                <h2 className="text-xl font-bold text-white">{t('recruiter.applications.filtersTitle')}</h2>
                                 <p className="mt-1 text-sm text-white/55">
-                                    Recherchez rapidement par candidat, poste, ville, statut ou score de quiz.
+                                    {t('recruiter.applications.filtersHelp')}
                                 </p>
                             </div>
 
@@ -396,7 +397,7 @@ export default function RecruteurCandidatures() {
                                 className="inline-flex w-fit items-center gap-2 rounded-full border border-borderGlass bg-white/5 px-4 py-2 text-sm font-semibold text-white/75 transition-colors hover:border-accent/40 hover:text-white"
                             >
                                 <RotateCcw size={14} />
-                                Réinitialiser
+                                {t('common.reset')}
                             </button>
                         </div>
 
@@ -410,59 +411,51 @@ export default function RecruteurCandidatures() {
                                     type="search"
                                     value={searchTerm}
                                     onChange={(event) => setSearchTerm(event.target.value)}
-                                    placeholder="Nom candidat ou titre d'offre"
+                                    placeholder={t('recruiter.applications.searchPlaceholder')}
                                     className="w-full bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/35"
                                 />
                             </label>
 
-                            <label className="rounded-2xl border border-borderGlass bg-obsidian/55 px-4 py-3 transition-colors focus-within:border-accent/50">
-                                <span className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white/45">
-                                    <Briefcase size={14} className="text-accent" />
-                                    Offre
-                                </span>
-                                <select
-                                    value={selectedOfferId}
-                                    onChange={(event) => updateOfferFilter(event.target.value)}
-                                    className="w-full bg-transparent text-sm font-semibold text-white outline-none"
-                                >
-                                    <option value="all" className="bg-deepNavy text-white">Toutes les offres</option>
-                                    {offers.map((offer) => (
-                                        <option key={offer.id} value={offer.id} className="bg-deepNavy text-white">
-                                            {offer.titre_poste} - {offer.ville} ({getApplicationsCount(offer)})
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
+                            <SmartSelect
+                                label={t('common.offer')}
+                                icon={Briefcase}
+                                value={selectedOfferId}
+                                onChange={updateOfferFilter}
+                                options={[
+                                    { value: 'all', label: t('recruiter.applications.allOffers') },
+                                    ...offers.map((offer) => ({
+                                        value: offer.id,
+                                        label: `${offer.titre_poste} - ${offer.ville} (${getApplicationsCount(offer)})`,
+                                    })),
+                                ]}
+                                buttonClassName="bg-obsidian/55"
+                            />
 
-                            <label className="rounded-2xl border border-borderGlass bg-obsidian/55 px-4 py-3 transition-colors focus-within:border-accent/50">
-                                <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/45">Statut</span>
-                                <select
-                                    value={statusFilter}
-                                    onChange={(event) => setStatusFilter(event.target.value)}
-                                    className="w-full bg-transparent text-sm font-semibold text-white outline-none"
-                                >
-                                    <option value="all" className="bg-deepNavy text-white">Tous</option>
-                                    <option value="en_attente" className="bg-deepNavy text-white">En attente</option>
-                                    <option value="acceptee" className="bg-deepNavy text-white">Acceptées</option>
-                                    <option value="refusee" className="bg-deepNavy text-white">Refusées</option>
-                                </select>
-                            </label>
+                            <SmartSelect
+                                label={t('common.status')}
+                                value={statusFilter}
+                                onChange={setStatusFilter}
+                                options={[
+                                    { value: 'all', label: t('common.all') },
+                                    { value: 'en_attente', label: t('candidate.dashboard.pending') },
+                                    { value: 'acceptee', label: t('candidate.dashboard.accepted') },
+                                    { value: 'refusee', label: t('candidate.dashboard.rejected') },
+                                ]}
+                                buttonClassName="bg-obsidian/55"
+                            />
 
-                            <label className="rounded-2xl border border-borderGlass bg-obsidian/55 px-4 py-3 transition-colors focus-within:border-accent/50">
-                                <span className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white/45">
-                                    <ShieldCheck size={14} className="text-accent" />
-                                    Quiz
-                                </span>
-                                <select
-                                    value={quizFilter}
-                                    onChange={(event) => setQuizFilter(event.target.value)}
-                                    className="w-full bg-transparent text-sm font-semibold text-white outline-none"
-                                >
-                                    <option value="all" className="bg-deepNavy text-white">Tous</option>
-                                    <option value="with_score" className="bg-deepNavy text-white">Avec score</option>
-                                    <option value="without_score" className="bg-deepNavy text-white">Sans score</option>
-                                </select>
-                            </label>
+                            <SmartSelect
+                                label="Quiz"
+                                icon={ShieldCheck}
+                                value={quizFilter}
+                                onChange={setQuizFilter}
+                                options={[
+                                    { value: 'all', label: t('common.all') },
+                                    { value: 'with_score', label: t('recruiter.applications.withScore') },
+                                    { value: 'without_score', label: t('recruiter.applications.withoutScore') },
+                                ]}
+                                buttonClassName="bg-obsidian/55"
+                            />
                         </div>
                     </motion.section>
 
@@ -472,9 +465,9 @@ export default function RecruteurCandidatures() {
                     >
                         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                             <div>
-                                <h2 className="text-xl font-bold text-white">Liste des candidats</h2>
+                                <h2 className="text-xl font-bold text-white">{t('recruiter.applications.listTitle')}</h2>
                                 <p className="mt-1 text-sm text-white/55">
-                                    {filteredApplications.length} candidature{filteredApplications.length > 1 ? 's' : ''} affichée{filteredApplications.length > 1 ? 's' : ''}
+                                    {t('recruiter.applications.displayed', { count: filteredApplications.length })}
                                 </p>
                             </div>
 
@@ -482,7 +475,7 @@ export default function RecruteurCandidatures() {
                                 to="/recruteur/offer/create"
                                 className="inline-flex w-fit items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent/90"
                             >
-                                Créer une offre
+                                {t('recruiter.profile.createOffer')}
                                 <ArrowRight size={14} />
                             </Link>
                         </div>
@@ -490,29 +483,29 @@ export default function RecruteurCandidatures() {
                         {loading ? (
                             <div className="py-16 text-center">
                                 <div className="mx-auto mb-4 h-9 w-9 animate-spin rounded-full border-2 border-white/20 border-t-accent" />
-                                <p className="text-white/60">Chargement des candidatures...</p>
+                                <p className="text-white/60">{t('recruiter.applications.loading')}</p>
                             </div>
                         ) : allApplications.length === 0 ? (
                             <div className="rounded-2xl border border-dashed border-borderGlass bg-white/5 px-5 py-12 text-center">
                                 <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-borderGlass bg-white/5 text-accent">
                                     <UserRound size={22} />
                                 </div>
-                                <p className="text-lg font-bold text-white">Aucune candidature reçue pour le moment.</p>
+                                <p className="text-lg font-bold text-white">{t('recruiter.applications.empty')}</p>
                                 <p className="mx-auto mt-2 max-w-md text-sm text-white/55">
-                                    Publiez une offre claire pour commencer a recevoir des profils qualifiés.
+                                    {t('recruiter.applications.emptyHelp')}
                                 </p>
                                 <Link
                                     to="/recruteur/offer/create"
                                     className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent/90"
                                 >
-                                    Créer une offre
+                                    {t('recruiter.profile.createOffer')}
                                     <ArrowRight size={14} />
                                 </Link>
                             </div>
                         ) : filteredApplications.length === 0 ? (
                             <div className="rounded-2xl border border-dashed border-borderGlass bg-white/5 px-5 py-12 text-center">
-                                <p className="text-lg font-bold text-white">Aucune candidature ne correspond aux filtres.</p>
-                                <p className="mt-2 text-sm text-white/55">Essayez de modifier votre recherche ou réinitialisez les filtres.</p>
+                                <p className="text-lg font-bold text-white">{t('recruiter.applications.noMatch')}</p>
+                                <p className="mt-2 text-sm text-white/55">{t('recruiter.applications.noMatchHelp')}</p>
                                 {hasAnyFilter && (
                                     <button
                                         type="button"
@@ -520,7 +513,7 @@ export default function RecruteurCandidatures() {
                                         className="mt-5 inline-flex items-center justify-center gap-2 rounded-full border border-borderGlass bg-white/5 px-5 py-2.5 text-sm font-semibold text-white/75 transition-colors hover:border-accent/40 hover:text-white"
                                     >
                                         <RotateCcw size={14} />
-                                        Réinitialiser
+                                        {t('common.reset')}
                                     </button>
                                 )}
                             </div>
@@ -566,7 +559,7 @@ export default function RecruteurCandidatures() {
                                                                         statusBadgeClasses[application.status] || 'border-white/20 bg-white/10 text-white/75'
                                                                     }`}
                                                                 >
-                                                                    {toReadableStatus(application.status)}
+                                                                    {toReadableStatus(application.status, t)}
                                                                 </span>
                                                                 <span className={`inline-flex w-fit items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
                                                                     reviewScore >= 75
@@ -574,7 +567,7 @@ export default function RecruteurCandidatures() {
                                                                         : 'border-sky-400/30 bg-sky-500/10 text-sky-200'
                                                                 }`}>
                                                                     <Sparkles size={12} />
-                                                                    {reviewScore >= 75 ? 'Profil recommande' : 'Score profil'} {reviewScore}%
+                                                                        {reviewScore >= 75 ? t('recruiter.applications.recommendedProfile') : t('recruiter.applications.profileScore')} {reviewScore}%
                                                                 </span>
                                                             </div>
 
@@ -589,7 +582,7 @@ export default function RecruteurCandidatures() {
                                                                 </span>
                                                                 <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white/75">
                                                                     <ShieldCheck size={13} className="shrink-0 text-accent" />
-                                                                    <span>Quiz: {application.quiz_score ?? 'Sans score'}</span>
+                                                                    <span>{t('common.quiz')}: {application.quiz_score ?? t('recruiter.applications.noScore')}</span>
                                                                 </span>
                                                                 <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white/75">
                                                                     <Calendar size={13} className="shrink-0 text-accent" />
@@ -609,12 +602,12 @@ export default function RecruteurCandidatures() {
                                                             className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-borderGlass bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/85 transition-colors hover:border-accent/45 hover:text-white"
                                                         >
                                                             <Download size={15} />
-                                                            Voir / Télécharger CV
+                                                            {t('recruiter.applications.cvAction')}
                                                         </a>
                                                     ) : (
                                                         <span className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/38">
                                                             <FileText size={15} />
-                                                            CV indisponible
+                                                            {t('recruiter.applications.cvUnavailable')}
                                                         </span>
                                                     )}
 
@@ -626,7 +619,7 @@ export default function RecruteurCandidatures() {
                                                             className="inline-flex items-center justify-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-2.5 text-xs font-bold text-emerald-200 transition-colors hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-45"
                                                         >
                                                             <Check size={14} />
-                                                            Accepter
+                                                            {t('recruiter.applications.accept')}
                                                         </button>
 
                                                         <button
@@ -636,7 +629,7 @@ export default function RecruteurCandidatures() {
                                                             className="inline-flex items-center justify-center gap-1.5 rounded-full border border-rose-400/30 bg-rose-500/10 px-3 py-2.5 text-xs font-bold text-rose-200 transition-colors hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-45"
                                                         >
                                                             <X size={14} />
-                                                            Refuser
+                                                            {t('recruiter.applications.reject')}
                                                         </button>
                                                     </div>
 
@@ -647,7 +640,7 @@ export default function RecruteurCandidatures() {
                                                             className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/20"
                                                         >
                                                             <MessageCircle size={15} />
-                                                            Discussion
+                                                            {t('candidate.dashboard.discussion')}
                                                         </button>
                                                     )}
 
@@ -656,7 +649,7 @@ export default function RecruteurCandidatures() {
                                                             to={`/jobs/${offerId}`}
                                                             className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-borderGlass bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/70 transition-colors hover:border-accent/40 hover:text-white"
                                                         >
-                                                            Voir l'offre
+                                                            {t('common.viewOffer')}
                                                             <ArrowRight size={14} />
                                                         </Link>
                                                     )}

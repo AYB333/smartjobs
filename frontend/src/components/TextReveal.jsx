@@ -26,6 +26,7 @@ export default function TextReveal({ text, className }) {
 
     return (
         <motion.div
+            key={text}
             className={`flex flex-wrap gap-x-[0.25em] gap-y-2 ${className}`}
             variants={container}
             initial="hidden"
@@ -34,7 +35,7 @@ export default function TextReveal({ text, className }) {
             {words.map((word, idx) => (
                 <motion.span
                     variants={child}
-                    key={idx}
+                    key={`${text}-${idx}-${word}`}
                     className="inline-block"
                 >
                     {word}

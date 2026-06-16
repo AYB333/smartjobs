@@ -9,7 +9,9 @@ import {
     UserRound,
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
+import SmartSelect from '../components/SmartSelect';
 import api from '../api/axios';
+import { useI18n } from '../context/useAppExperience';
 
 const cities = ['Casablanca', 'Rabat', 'Marrakech', 'Agadir', 'Fès', 'Tanger', 'Meknès', 'Oujda', 'Tétouan', 'El Jadida'];
 const experienceOptions = ['Sans expérience', 'Moins de 1 an', '1 à 2 ans', '3 à 5 ans', 'Plus de 5 ans'];
@@ -87,35 +89,27 @@ function hasProfileFile(profile, pathKey, urlKey) {
     return Boolean(profile?.[pathKey] || profile?.[urlKey]);
 }
 
-function completionItems(form, currentProfile, cvFile, photoFile) {
+function completionItems(form, currentProfile, cvFile, photoFile, t) {
     return [
-        { label: 'Ville', done: Boolean(form.ville.trim()) },
-        { label: 'Expérience', done: Boolean(form.experience.trim()) },
-        { label: 'Poste recherché', done: Boolean(form.poste_recherche.trim()) },
-        { label: 'Disponibilité', done: Boolean(form.disponibilite.trim()) },
-        { label: 'Contrat préféré', done: Boolean(form.contrat_prefere.trim()) },
-        { label: 'CV PDF', done: Boolean(cvFile || hasProfileFile(currentProfile, 'cv_path', 'cv_url')) },
-        { label: 'Photo', done: Boolean(photoFile || hasProfileFile(currentProfile, 'photo_path', 'photo_url')), optional: true },
+        { label: t('common.city'), done: Boolean(form.ville.trim()) },
+        { label: t('candidate.profile.experience'), done: Boolean(form.experience.trim()) },
+        { label: t('candidate.profile.positionWanted'), done: Boolean(form.poste_recherche.trim()) },
+        { label: t('candidate.profile.availability'), done: Boolean(form.disponibilite.trim()) },
+        { label: t('candidate.profile.preferredContract'), done: Boolean(form.contrat_prefere.trim()) },
+        { label: `${t('common.cv')} PDF`, done: Boolean(cvFile || hasProfileFile(currentProfile, 'cv_path', 'cv_url')) },
+        { label: t('common.photo'), done: Boolean(photoFile || hasProfileFile(currentProfile, 'photo_path', 'photo_url')), optional: true },
     ];
 }
 
 function SelectField({ label, value, onChange, options, placeholder }) {
     return (
-        <label className="block">
-            <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/55">{label}</span>
-            <select
-                value={value}
-                onChange={(event) => onChange(event.target.value)}
-                className="w-full rounded-2xl border border-borderGlass bg-obsidian/60 px-4 py-3.5 text-sm font-medium text-white outline-none transition-all focus:border-accent/60 focus:bg-obsidian/70 focus:shadow-[0_0_0_4px_rgba(232,101,26,0.12)]"
-            >
-                <option value="">{placeholder}</option>
-                {options.map((option) => (
-                    <option key={option} value={option} className="bg-deepNavy text-white">
-                        {option}
-                    </option>
-                ))}
-            </select>
-        </label>
+        <SmartSelect
+            label={label}
+            value={value}
+            onChange={onChange}
+            options={options}
+            placeholder={placeholder}
+        />
     );
 }
 
@@ -148,6 +142,7 @@ function UploadBox({ title, description, status, accept, onFile, onDrop, childre
 }
 
 export default function CandidatProfile() {
+    const { t } = useI18n();
     const backendBase = useMemo(() => getBackendBaseUrl(), []);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -166,7 +161,7 @@ export default function CandidatProfile() {
     const [photoPreview, setPhotoPreview] = useState('');
 
     const currentProfile = getCandidateProfile(currentUser);
-    const items = completionItems(form, currentProfile, cvFile, photoFile);
+    const items = completionItems(form, currentProfile, cvFile, photoFile, t);
     const completedCount = items.filter((item) => item.done).length;
     const completion = Math.round((completedCount / items.length) * 100);
     const currentCvUrl = profileFileUrl(backendBase, currentProfile, 'cv_path', 'cv_url');
@@ -184,19 +179,19 @@ export default function CandidatProfile() {
 
     const nextAction = useMemo(() => {
         if (!hasCoreProfile) {
-            return 'Complétez vos informations';
+            return t('candidate.profile.nextInfo');
         }
 
         if (!hasProfessionalPreferences) {
-            return 'Ajoutez vos préférences';
+            return t('candidate.profile.nextPreferences');
         }
 
         if (!hasCvReady) {
-            return 'Ajoutez votre CV';
+            return t('candidate.profile.nextCv');
         }
 
-        return 'Profil prêt pour postuler';
-    }, [hasCoreProfile, hasCvReady, hasProfessionalPreferences]);
+        return t('candidate.profile.ready');
+    }, [hasCoreProfile, hasCvReady, hasProfessionalPreferences, t]);
 
     useEffect(() => {
         const loadProfile = async () => {
@@ -216,6 +211,7 @@ export default function CandidatProfile() {
                 });
                 if (user) {
                     localStorage.setItem('user', JSON.stringify(user));
+                    window.dispatchEvent(new CustomEvent('smartjobs:user-updated', { detail: user }));
                 }
             } catch (requestError) {
                 setError(requestError?.response?.data?.message || 'Impossible de charger le profil.');
@@ -322,14 +318,15 @@ export default function CandidatProfile() {
             });
             if (user) {
                 localStorage.setItem('user', JSON.stringify(user));
+                window.dispatchEvent(new CustomEvent('smartjobs:user-updated', { detail: user }));
             }
             setCvFile(null);
             setPhotoFile(null);
             setPhotoPreview('');
-            setToast('Profil mis à jour avec succès.');
+            setToast(t('candidate.profile.updated'));
             setTimeout(() => setToast(''), 2500);
         } catch (requestError) {
-            setError(requestError?.response?.data?.message || 'Erreur lors de la sauvegarde du profil.');
+            setError(requestError?.response?.data?.message || t('candidate.profile.saveError'));
         } finally {
             setSaving(false);
         }
@@ -341,10 +338,10 @@ export default function CandidatProfile() {
 
             <main className="container mx-auto px-5 pt-28 pb-14 sm:px-6 lg:pt-32">
                 <section className="mb-7 max-w-4xl">
-                    <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-accent">Profil candidat</p>
-                    <h1 className="text-3xl font-black leading-tight text-white md:text-4xl">Préparez votre profil pour postuler</h1>
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-accent">{t('candidate.profile.kicker')}</p>
+                    <h1 className="text-3xl font-black leading-tight text-white md:text-4xl">{t('candidate.profile.title')}</h1>
                     <p className="mt-3 max-w-3xl text-base leading-relaxed text-white/62">
-                        Complétez vos informations professionnelles et ajoutez votre CV une seule fois. SmartJobs utilisera ce profil pour vos candidatures et vos recommandations.
+                        {t('candidate.profile.subtitle')}
                     </p>
                 </section>
 
@@ -357,71 +354,71 @@ export default function CandidatProfile() {
                 {loading ? (
                     <div className="rounded-3xl border border-borderGlass bg-surface px-6 py-16 text-center">
                         <div className="mx-auto mb-4 h-9 w-9 animate-spin rounded-full border-2 border-white/20 border-t-accent" />
-                        <p className="text-white/60">Chargement du profil...</p>
+                        <p className="text-white/60">{t('candidate.profile.loading')}</p>
                     </div>
                 ) : (
                     <form onSubmit={saveProfile} className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_390px]">
                         <section className="space-y-6">
                             <div className="rounded-3xl border border-borderGlass bg-surface p-5 shadow-[0_18px_50px_rgba(0,0,0,0.12)] md:p-7">
                                 <div className="mb-6 border-b border-borderGlass pb-5">
-                                    <p className="text-xs font-semibold uppercase tracking-wider text-accent">Étape 1</p>
-                                    <h2 className="mt-1 text-xl font-bold text-white">Informations professionnelles</h2>
-                                    <p className="mt-1 text-sm text-white/58">Ces champs aident à trouver des offres cohérentes avec votre profil.</p>
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-accent">{t('candidate.profile.step1')}</p>
+                                    <h2 className="mt-1 text-xl font-bold text-white">{t('candidate.profile.professionalInfo')}</h2>
+                                    <p className="mt-1 text-sm text-white/58">{t('candidate.profile.professionalHelp')}</p>
                                 </div>
 
                                 <div className="grid gap-5 md:grid-cols-2">
                                     <SelectField
-                                        label="Ville"
+                                        label={t('common.city')}
                                         value={form.ville}
                                         onChange={(value) => setField('ville', value)}
                                         options={cityOptions}
-                                        placeholder="Choisir une ville"
+                                        placeholder={t('candidate.profile.chooseCity')}
                                     />
                                     <SelectField
-                                        label="Expérience"
+                                        label={t('candidate.profile.experience')}
                                         value={form.experience}
                                         onChange={(value) => setField('experience', value)}
                                         options={mappedExperienceOptions}
-                                        placeholder="Choisir une expérience"
+                                        placeholder={t('candidate.profile.chooseExperience')}
                                     />
                                     <div className="md:col-span-2">
                                         <SelectField
-                                            label="Poste recherché"
+                                            label={t('candidate.profile.positionWanted')}
                                             value={form.poste_recherche}
                                             onChange={(value) => setField('poste_recherche', value)}
                                             options={mappedPositionOptions}
-                                            placeholder="Choisir un poste"
+                                            placeholder={t('candidate.profile.choosePosition')}
                                         />
                                     </div>
                                     <SelectField
-                                        label="Disponibilité"
+                                        label={t('candidate.profile.availability')}
                                         value={form.disponibilite}
                                         onChange={(value) => setField('disponibilite', value)}
                                         options={availabilityOptions}
-                                        placeholder="Choisir une disponibilité"
+                                        placeholder={t('candidate.profile.chooseAvailability')}
                                     />
                                     <SelectField
-                                        label="Contrat préféré"
+                                        label={t('candidate.profile.preferredContract')}
                                         value={form.contrat_prefere}
                                         onChange={(value) => setField('contrat_prefere', value)}
                                         options={contractOptions}
-                                        placeholder="Choisir un contrat"
+                                        placeholder={t('candidate.profile.chooseContract')}
                                     />
                                 </div>
                             </div>
 
                             <div className="rounded-3xl border border-borderGlass bg-surface p-5 shadow-[0_18px_50px_rgba(0,0,0,0.12)] md:p-7">
                                 <div className="mb-6 border-b border-borderGlass pb-5">
-                                    <p className="text-xs font-semibold uppercase tracking-wider text-accent">Étape 2</p>
-                                    <h2 className="mt-1 text-xl font-bold text-white">Documents</h2>
-                                    <p className="mt-1 text-sm text-white/58">Le CV est requis pour postuler. La photo reste optionnelle.</p>
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-accent">{t('candidate.profile.step2')}</p>
+                                    <h2 className="mt-1 text-xl font-bold text-white">{t('candidate.profile.documents')}</h2>
+                                    <p className="mt-1 text-sm text-white/58">{t('candidate.profile.documentsHelp')}</p>
                                 </div>
 
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <UploadBox
-                                        title={cvFile ? cvFile.name : hasSavedCv ? 'CV ajouté' : 'Ajouter mon CV PDF'}
-                                        description="PDF max 2MB."
-                                        status="Ce CV sera réutilisé automatiquement pour vos postulations."
+                                        title={cvFile ? cvFile.name : hasSavedCv ? t('candidate.profile.cvAdded') : t('candidate.profile.addCv')}
+                                        description={t('candidate.profile.cvHelp')}
+                                        status={t('candidate.profile.cvReusable')}
                                         accept="application/pdf,.pdf"
                                         onFile={handleCvSelection}
                                         onDrop={(event) => {
@@ -438,15 +435,15 @@ export default function CandidatProfile() {
                                                 className="mt-3 inline-flex items-center gap-2 rounded-full border border-borderGlass bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/80 transition-colors hover:border-accent/45 hover:text-white"
                                             >
                                                 <FileText size={13} />
-                                                Voir le CV actuel
+                                                {t('candidate.profile.currentCv')}
                                             </a>
                                         )}
                                     </UploadBox>
 
                                     <UploadBox
-                                        title={photoFile ? photoFile.name : hasSavedPhoto ? 'Photo ajoutée' : 'Ajouter une photo'}
-                                        description="Ajoutez une photo professionnelle claire. Formats JPG/PNG, max 2MB."
-                                        status={photoFile || hasSavedPhoto ? 'Remplacer la photo' : ''}
+                                        title={photoFile ? photoFile.name : hasSavedPhoto ? t('candidate.profile.photoAdded') : t('candidate.profile.addPhoto')}
+                                        description={t('candidate.profile.photoHelp')}
+                                        status={photoFile || hasSavedPhoto ? t('candidate.profile.replacePhoto') : ''}
                                         accept="image/jpeg,image/png"
                                         onFile={handlePhotoSelection}
                                         onDrop={(event) => {
@@ -471,14 +468,14 @@ export default function CandidatProfile() {
                                     disabled={saving}
                                     className="inline-flex items-center justify-center rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-[0_14px_32px_rgba(232,101,26,0.22)] transition-colors hover:bg-accent/90 disabled:opacity-70"
                                 >
-                                    {saving ? 'Enregistrement...' : 'Enregistrer mon profil'}
+                                    {saving ? t('common.saving') : t('candidate.profile.save')}
                                 </button>
                                 {canSeeRecommendations && (
                                     <Link
                                         to={recommendedJobsUrl}
                                         className="inline-flex items-center justify-center gap-2 rounded-full border border-borderGlass bg-surface px-6 py-3 text-sm font-semibold text-white/80 transition-colors hover:border-accent/50 hover:text-white"
                                     >
-                                        Voir les offres recommandées
+                                        {t('candidate.profile.recommended')}
                                         <ArrowRight size={15} />
                                     </Link>
                                 )}
@@ -489,7 +486,7 @@ export default function CandidatProfile() {
                             <div className="rounded-3xl border border-borderGlass bg-surface p-5 shadow-[0_18px_50px_rgba(0,0,0,0.12)]">
                                 <div className="flex items-start justify-between gap-4">
                                     <div>
-                                        <p className="text-xs font-semibold uppercase tracking-wider text-accent">Progression</p>
+                                        <p className="text-xs font-semibold uppercase tracking-wider text-accent">{t('candidate.profile.progress')}</p>
                                         <h3 className="mt-1 text-lg font-bold text-white">{nextAction}</h3>
                                     </div>
                                     <span className="text-2xl font-black text-white">{completion}%</span>
@@ -501,7 +498,7 @@ export default function CandidatProfile() {
                                     {items.map((item) => (
                                         <div key={item.label} className="flex items-center justify-between gap-3 rounded-xl border border-borderGlass bg-white/5 px-3 py-2.5">
                                             <span className="text-sm font-medium text-white/74">
-                                                {item.label}{item.optional ? ' (optionnel)' : ''}
+                                                {item.label}{item.optional ? ` (${t('common.optional')})` : ''}
                                             </span>
                                             <CheckCircle2 size={16} className={item.done ? 'text-emerald-300' : 'text-white/30'} />
                                         </div>
@@ -510,7 +507,7 @@ export default function CandidatProfile() {
                             </div>
 
                             <div className="rounded-3xl border border-borderGlass bg-surface p-5 shadow-[0_18px_50px_rgba(0,0,0,0.12)]">
-                                <p className="text-xs font-semibold uppercase tracking-wider text-accent">Aperçu recruteur</p>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-accent">{t('candidate.profile.preview')}</p>
                                 <div className="mt-5 flex items-center gap-4">
                                     <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-borderGlass bg-white/5">
                                         {currentPhotoUrl ? (
@@ -520,27 +517,27 @@ export default function CandidatProfile() {
                                         )}
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="truncate text-lg font-bold text-white">{currentUser?.name || 'Candidat SmartJobs'}</p>
-                                        <p className="mt-1 truncate text-sm text-white/58">{form.poste_recherche || 'Poste recherché non renseigné'}</p>
+                                        <p className="truncate text-lg font-bold text-white">{currentUser?.name || t('candidate.profile.smartCandidate')}</p>
+                                        <p className="mt-1 truncate text-sm text-white/58">{form.poste_recherche || t('candidate.profile.positionMissing')}</p>
                                     </div>
                                 </div>
 
                                 <div className="mt-5 grid gap-3 text-sm">
                                     <div className="flex items-center justify-between gap-3 border-b border-borderGlass pb-3">
-                                        <span className="text-white/50">Ville</span>
-                                        <span className="text-right font-semibold text-white">{form.ville || 'Non renseignée'}</span>
+                                        <span className="text-white/50">{t('common.city')}</span>
+                                        <span className="text-right font-semibold text-white">{form.ville || t('candidate.profile.notFilledFemale')}</span>
                                     </div>
                                     <div className="flex items-center justify-between gap-3 border-b border-borderGlass pb-3">
-                                        <span className="text-white/50">Expérience</span>
-                                        <span className="text-right font-semibold text-white">{form.experience || 'Non renseignée'}</span>
+                                        <span className="text-white/50">{t('candidate.profile.experience')}</span>
+                                        <span className="text-right font-semibold text-white">{form.experience || t('candidate.profile.notFilledFemale')}</span>
                                     </div>
                                     <div className="flex items-center justify-between gap-3 border-b border-borderGlass pb-3">
-                                        <span className="text-white/50">Disponibilité</span>
-                                        <span className="text-right font-semibold text-white">{form.disponibilite || 'Non renseignée'}</span>
+                                        <span className="text-white/50">{t('candidate.profile.availability')}</span>
+                                        <span className="text-right font-semibold text-white">{form.disponibilite || t('candidate.profile.notFilledFemale')}</span>
                                     </div>
                                     <div className="flex items-center justify-between gap-3 border-b border-borderGlass pb-3">
-                                        <span className="text-white/50">Contrat préféré</span>
-                                        <span className="text-right font-semibold text-white">{form.contrat_prefere || 'Non renseigné'}</span>
+                                        <span className="text-white/50">{t('candidate.profile.preferredContract')}</span>
+                                        <span className="text-right font-semibold text-white">{form.contrat_prefere || t('candidate.profile.notFilled')}</span>
                                     </div>
                                     <div className="flex items-center justify-between gap-3">
                                         <span className="text-white/50">CV</span>
@@ -550,7 +547,7 @@ export default function CandidatProfile() {
                                                 : 'bg-amber-500/12 text-amber-200'
                                         }`}>
                                             <FileText size={13} />
-                                            {hasCvReady ? 'Ajouté' : 'Manquant'}
+                                            {hasCvReady ? t('common.added') : t('common.missing')}
                                         </span>
                                     </div>
                                 </div>
@@ -558,10 +555,10 @@ export default function CandidatProfile() {
 
                             <div className="rounded-2xl border border-borderGlass bg-white/5 p-4">
                                 <p className="text-sm font-semibold text-white">
-                                    Conseil
+                                    {t('candidate.profile.tip')}
                                 </p>
                                 <p className="mt-2 text-xs leading-relaxed text-white/60">
-                                    Un profil clair avec CV permet de postuler plus vite et donne aux recruteurs les informations essentielles sans formulaire répété.
+                                    {t('candidate.profile.tipText')}
                                 </p>
                             </div>
                         </aside>

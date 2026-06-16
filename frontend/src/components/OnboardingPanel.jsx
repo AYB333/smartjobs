@@ -40,7 +40,7 @@ export default function OnboardingPanel({
             {nextAction && (
                 <div className="mb-5 flex flex-col gap-4 rounded-2xl border border-accent/30 bg-accent/10 p-4 md:flex-row md:items-center md:justify-between">
                     <div>
-                        <p className="text-xs font-semibold uppercase tracking-wider text-accent">Prochaine action</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-accent">{t('onboarding.nextAction')}</p>
                         <h3 className="mt-1 text-lg font-bold text-white">{nextAction.title}</h3>
                         <p className="mt-1 text-sm text-white/65">{nextAction.description}</p>
                     </div>
@@ -49,7 +49,7 @@ export default function OnboardingPanel({
                             to={nextAction.to}
                             className="inline-flex w-fit items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent/90"
                         >
-                            {nextAction.label || 'Continuer'}
+                            {nextAction.label || t('common.continue')}
                             <ArrowRight size={15} />
                         </Link>
                     )}
@@ -92,7 +92,7 @@ export default function OnboardingPanel({
 
                             <span className="flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-wider">
                                 <span>
-                                    {item.done ? 'Termine' : item.locked ? 'Bloque' : item.actionLabel || 'Continuer'}
+                                    {item.done ? t('common.completed') : item.locked ? t('common.blocked') : item.actionLabel || t('common.continue')}
                                 </span>
                                 {!item.done && !item.locked && <ArrowRight size={13} />}
                             </span>

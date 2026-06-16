@@ -16,6 +16,7 @@ import {
     UserCog,
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
+import SmartSelect from '../components/SmartSelect';
 import api from '../api/axios';
 import { useToast } from '../context/useAppExperience';
 
@@ -84,10 +85,10 @@ function getOfferStatus(offer) {
     return offer.status || 'active';
 }
 
-function readableStatus(status) {
-    if (status === 'active') return 'Active';
-    if (status === 'expired') return 'Expiree';
-    if (status === 'suspended') return 'Suspendue';
+function readableStatus(status, t) {
+    if (status === 'active') return t('status.active');
+    if (status === 'expired') return t('status.expired');
+    if (status === 'suspended') return t('status.suspended');
     return status || '-';
 }
 
@@ -135,7 +136,7 @@ function normalizeSearch(value) {
 }
 
 export default function AdminDashboard() {
-    const { showToast } = useToast();
+    const { showToast, t } = useToast();
     const [stats, setStats] = useState(null);
     const [offers, setOffers] = useState([]);
     const [users, setUsers] = useState([]);
@@ -184,26 +185,26 @@ export default function AdminDashboard() {
 
     const statCards = useMemo(() => ([
         {
-            label: 'Offres actives',
+            label: t('admin.active'),
             value: stats?.total_offres_actives ?? stats?.total_offres ?? 0,
             icon: Briefcase,
         },
         {
-            label: 'Candidats',
+            label: t('auth.candidate'),
             value: stats?.total_candidats ?? 0,
             icon: UserCheck,
         },
         {
-            label: 'Recruteurs',
+            label: t('auth.recruiter'),
             value: stats?.total_recruteurs ?? 0,
             icon: Users,
         },
         {
-            label: 'Candidatures',
+            label: t('candidate.dashboard.applications'),
             value: stats?.total_candidatures ?? 0,
             icon: CheckCircle2,
         },
-    ]), [stats]);
+    ]), [stats, t]);
 
     const offerStatusCounts = useMemo(() => offers.reduce((counts, offer) => {
         const status = getOfferStatus(offer);
@@ -256,22 +257,22 @@ export default function AdminDashboard() {
     const tabs = useMemo(() => ([
         {
             id: 'overview',
-            label: 'Vue globale',
+            label: t('admin.globalView'),
             icon: LayoutDashboard,
         },
         {
             id: 'offers',
-            label: 'Offres',
+            label: t('admin.offers'),
             count: offers.length,
             icon: Briefcase,
         },
         {
             id: 'users',
-            label: 'Utilisateurs',
+            label: t('admin.users'),
             count: users.length,
             icon: UserCog,
         },
-    ]), [offers.length, users.length]);
+    ]), [offers.length, users.length, t]);
 
     const updateOfferStatus = async (offerId, status, suspensionReasonValue = '') => {
         setActionLoading((current) => ({ ...current, [offerId]: true }));
@@ -301,19 +302,19 @@ export default function AdminDashboard() {
             setStats(statsResponse?.data?.data ?? {});
             showToast({
                 type: 'success',
-                title: 'Moderation',
-                message: status === 'active' ? 'Offre activee.' : 'Offre suspendue.',
+                title: t('admin.moderationBadge'),
+                message: status === 'active' ? t('admin.offerActivated') : t('admin.offerSuspended'),
             });
 
             return true;
         } catch (requestError) {
             const message =
                 requestError?.response?.data?.message
-                || "Impossible de mettre a jour le statut de l'offre.";
+                || t('admin.statusUpdateError');
             setError(message);
             showToast({
                 type: 'error',
-                title: 'Moderation',
+                title: t('admin.moderationBadge'),
                 message,
             });
 
@@ -370,9 +371,9 @@ export default function AdminDashboard() {
                             <Shield size={13} />
                             Console admin
                         </p>
-                        <h1 className="text-3xl md:text-4xl font-black text-white">Dashboard Admin</h1>
+                        <h1 className="text-3xl md:text-4xl font-black text-white">{t('admin.title')}</h1>
                         <p className="text-white/60 mt-2">
-                            Pilotage global, moderation des offres et suivi des comptes.
+                            {t('admin.subtitle')}
                         </p>
                     </div>
 
@@ -395,7 +396,7 @@ export default function AdminDashboard() {
                 {loading ? (
                     <div className="rounded-3xl border border-borderGlass bg-surface px-6 py-16 text-center">
                         <div className="mx-auto mb-4 h-9 w-9 animate-spin rounded-full border-2 border-white/20 border-t-accent" />
-                        <p className="text-white/60">Chargement du dashboard admin...</p>
+                        <p className="text-white/60">{t('admin.loading')}</p>
                     </div>
                 ) : (
                     <motion.div
@@ -465,14 +466,14 @@ export default function AdminDashboard() {
                                             <BarChart3 size={20} />
                                         </span>
                                         <div>
-                                            <h2 className="text-lg font-bold text-white">Offres par statut</h2>
-                                            <p className="text-sm text-white/50">Vue rapide de la moderation.</p>
+                                            <h2 className="text-lg font-bold text-white">{t('admin.offersByStatus')}</h2>
+                                            <p className="text-sm text-white/50">{t('admin.offersByStatusHelp')}</p>
                                         </div>
                                     </div>
                                     <div className="space-y-4">
-                                        <AnalyticsBar label="Actives" value={offerStatusCounts.active} total={offers.length} tone="emerald" />
-                                        <AnalyticsBar label="Suspendues" value={offerStatusCounts.suspended} total={offers.length} tone="amber" />
-                                        <AnalyticsBar label="Expirees" value={offerStatusCounts.expired} total={offers.length} tone="rose" />
+                                        <AnalyticsBar label={t('admin.activePlural')} value={offerStatusCounts.active} total={offers.length} tone="emerald" />
+                                        <AnalyticsBar label={t('admin.suspendedPlural')} value={offerStatusCounts.suspended} total={offers.length} tone="amber" />
+                                        <AnalyticsBar label={t('admin.expiredPlural')} value={offerStatusCounts.expired} total={offers.length} tone="rose" />
                                     </div>
                                 </div>
 
@@ -482,14 +483,14 @@ export default function AdminDashboard() {
                                             <Users size={20} />
                                         </span>
                                         <div>
-                                            <h2 className="text-lg font-bold text-white">Utilisateurs par role</h2>
-                                            <p className="text-sm text-white/50">Equilibre candidats, recruteurs et admin.</p>
+                                            <h2 className="text-lg font-bold text-white">{t('admin.usersByRole')}</h2>
+                                            <p className="text-sm text-white/50">{t('admin.usersByRoleHelp')}</p>
                                         </div>
                                     </div>
                                     <div className="space-y-4">
-                                        <AnalyticsBar label="Candidats" value={userRoleCounts.candidat} total={users.length} tone="sky" />
-                                        <AnalyticsBar label="Recruteurs" value={userRoleCounts.recruteur} total={users.length} tone="accent" />
-                                        <AnalyticsBar label="Admins" value={userRoleCounts.admin} total={users.length} tone="rose" />
+                                        <AnalyticsBar label={t('admin.candidates')} value={userRoleCounts.candidat} total={users.length} tone="sky" />
+                                        <AnalyticsBar label={t('admin.recruiters')} value={userRoleCounts.recruteur} total={users.length} tone="accent" />
+                                        <AnalyticsBar label={t('admin.admins')} value={userRoleCounts.admin} total={users.length} tone="rose" />
                                     </div>
                                 </div>
                             </section>
@@ -499,16 +500,16 @@ export default function AdminDashboard() {
                                     <div className="mb-4 inline-flex rounded-xl bg-accent/10 p-3 text-accent">
                                         <AlertTriangle size={20} />
                                     </div>
-                                    <h2 className="text-lg font-bold text-white">Moderation a surveiller</h2>
+                                    <h2 className="text-lg font-bold text-white">{t('admin.watchModeration')}</h2>
                                     <p className="mt-2 text-sm text-white/55">
-                                        {offerStatusCounts.suspended} offres suspendues et {offerStatusCounts.expired} expirees.
+                                        {t('admin.watchModerationText', { suspended: offerStatusCounts.suspended, expired: offerStatusCounts.expired })}
                                     </p>
                                     <button
                                         type="button"
                                         onClick={() => setActiveTab('offers')}
                                         className="mt-5 inline-flex items-center gap-2 rounded-full border border-borderGlass bg-white/5 px-4 py-2 text-sm font-semibold text-white/80 transition-colors hover:border-accent/50 hover:text-white"
                                     >
-                                        Ouvrir moderation
+                                        {t('admin.openModeration')}
                                     </button>
                                 </div>
 
@@ -516,12 +517,12 @@ export default function AdminDashboard() {
                                     <div className="mb-4 inline-flex rounded-xl bg-emerald-500/10 p-3 text-emerald-300">
                                         <CheckCircle2 size={20} />
                                     </div>
-                                    <h2 className="text-lg font-bold text-white">Plateforme active</h2>
+                                    <h2 className="text-lg font-bold text-white">{t('admin.platformActive')}</h2>
                                     <p className="mt-2 text-sm text-white/55">
-                                        {offerStatusCounts.active} offres actives pour {userRoleCounts.candidat} candidats.
+                                        {t('admin.platformActiveText', { active: offerStatusCounts.active, candidates: userRoleCounts.candidat })}
                                     </p>
                                     <p className="mt-4 text-xs uppercase tracking-wider text-white/40">
-                                        Objectif: garder des offres recentes et exploitables.
+                                        {t('admin.platformObjective')}
                                     </p>
                                 </div>
 
@@ -529,16 +530,20 @@ export default function AdminDashboard() {
                                     <div className="mb-4 inline-flex rounded-xl bg-sky-500/10 p-3 text-sky-300">
                                         <Users size={20} />
                                     </div>
-                                    <h2 className="text-lg font-bold text-white">Comptes utilisateurs</h2>
+                                    <h2 className="text-lg font-bold text-white">{t('admin.userAccounts')}</h2>
                                     <p className="mt-2 text-sm text-white/55">
-                                        {userRoleCounts.recruteur} recruteurs, {userRoleCounts.candidat} candidats et {userRoleCounts.admin} admins.
+                                        {t('admin.userAccountsText', {
+                                            recruiters: userRoleCounts.recruteur,
+                                            candidates: userRoleCounts.candidat,
+                                            admins: userRoleCounts.admin,
+                                        })}
                                     </p>
                                     <button
                                         type="button"
                                         onClick={() => setActiveTab('users')}
                                         className="mt-5 inline-flex items-center gap-2 rounded-full border border-borderGlass bg-white/5 px-4 py-2 text-sm font-semibold text-white/80 transition-colors hover:border-accent/50 hover:text-white"
                                     >
-                                        Gérer les utilisateurs
+                                        {t('admin.manageUsers')}
                                     </button>
                                 </div>
                             </section>
@@ -549,14 +554,14 @@ export default function AdminDashboard() {
                         <section className="rounded-3xl border border-borderGlass bg-surface p-6 md:p-8">
                             <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
                                 <div>
-                                    <h2 className="text-xl font-bold text-white">Moderation des offres</h2>
+                                    <h2 className="text-xl font-bold text-white">{t('admin.moderation')}</h2>
                                     <p className="text-white/55 text-sm mt-1">
-                                        Tous les statuts sont visibles pour suspension ou reactivation.
+                                        {t('admin.moderationHelp')}
                                     </p>
                                 </div>
                                 <span className="inline-flex w-fit items-center gap-2 rounded-full border border-borderGlass bg-white/5 px-3 py-1.5 text-xs text-white/60">
                                     <AlertTriangle size={13} className="text-accent" />
-                                    {filteredOffers.length}/{offers.length} offres
+                                    {t('admin.offersCount', { filtered: filteredOffers.length, total: offers.length })}
                                 </span>
                             </div>
 
@@ -567,39 +572,38 @@ export default function AdminDashboard() {
                                         value={offerSearch}
                                         onChange={(event) => setOfferSearch(event.target.value)}
                                         className="w-full rounded-2xl border border-borderGlass bg-obsidian/60 py-3 pl-11 pr-4 text-sm text-white outline-none transition-colors placeholder:text-white/35 focus:border-accent/50"
-                                        placeholder="Chercher par poste, recruteur ou ville"
+                                        placeholder={t('admin.searchOffers')}
                                     />
                                 </label>
-                                <label className="relative">
-                                    <Filter size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/35" />
-                                    <select
-                                        value={offerStatusFilter}
-                                        onChange={(event) => setOfferStatusFilter(event.target.value)}
-                                        className="w-full min-w-44 rounded-2xl border border-borderGlass bg-obsidian/60 py-3 pl-11 pr-4 text-sm text-white outline-none transition-colors focus:border-accent/50"
-                                    >
-                                        <option value="all">Tous statuts</option>
-                                        <option value="active">Actives</option>
-                                        <option value="expired">Expirees</option>
-                                        <option value="suspended">Suspendues</option>
-                                    </select>
-                                </label>
+                                <SmartSelect
+                                    value={offerStatusFilter}
+                                    onChange={setOfferStatusFilter}
+                                    icon={Filter}
+                                    options={[
+                                        { value: 'all', label: t('admin.allStatuses') },
+                                        { value: 'active', label: t('admin.active') },
+                                        { value: 'expired', label: t('status.expired') },
+                                        { value: 'suspended', label: t('status.suspended') },
+                                    ]}
+                                    className="min-w-44"
+                                />
                             </div>
 
                             {filteredOffers.length === 0 ? (
                                 <div className="rounded-2xl border border-dashed border-borderGlass px-5 py-10 text-center text-white/55">
-                                    Aucune offre ne correspond aux filtres.
+                                    {t('admin.noOffers')}
                                 </div>
                             ) : (
                                 <div className="overflow-x-auto">
                                     <table className="min-w-full text-left text-sm">
                                         <thead>
                                             <tr className="border-b border-borderGlass text-xs uppercase tracking-wider text-white/50">
-                                                <th className="px-4 py-3 font-semibold">Poste</th>
-                                                <th className="px-4 py-3 font-semibold">Recruteur</th>
-                                                <th className="px-4 py-3 font-semibold">Ville</th>
-                                                <th className="px-4 py-3 font-semibold">Statut</th>
-                                                <th className="px-4 py-3 font-semibold">Expiration</th>
-                                                <th className="px-4 py-3 font-semibold">Actions</th>
+                                                <th className="px-4 py-3 font-semibold">{t('admin.position')}</th>
+                                                <th className="px-4 py-3 font-semibold">{t('admin.recruiter')}</th>
+                                                <th className="px-4 py-3 font-semibold">{t('common.city')}</th>
+                                                <th className="px-4 py-3 font-semibold">{t('common.status')}</th>
+                                                <th className="px-4 py-3 font-semibold">{t('admin.expiration')}</th>
+                                                <th className="px-4 py-3 font-semibold">{t('admin.actions')}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -621,11 +625,11 @@ export default function AdminDashboard() {
                                                                     statusBadgeClasses[offerStatus] || 'bg-white/10 text-white/80 border-white/25'
                                                                 }`}
                                                             >
-                                                                {readableStatus(offerStatus)}
+                                                                {readableStatus(offerStatus, t)}
                                                             </span>
                                                             {offerStatus === 'suspended' && offer.suspension_reason && (
                                                                 <p className="mt-2 max-w-[240px] text-xs leading-5 text-amber-100/75">
-                                                                    <span className="font-semibold text-amber-200">Motif:</span> {offer.suspension_reason}
+                                                                    <span className="font-semibold text-amber-200">{t('admin.reasonLabel')}</span> {offer.suspension_reason}
                                                                 </p>
                                                             )}
                                                         </td>
@@ -644,7 +648,7 @@ export default function AdminDashboard() {
                                                                         onClick={() => openSuspensionDialog(offer)}
                                                                         className="rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-200 transition-colors hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
                                                                     >
-                                                                        Suspendre
+                                                                        {t('admin.suspend')}
                                                                     </button>
                                                                 ) : (
                                                                     <button
@@ -653,7 +657,7 @@ export default function AdminDashboard() {
                                                                         onClick={() => updateOfferStatus(offer.id, 'active')}
                                                                         className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
                                                                     >
-                                                                        Activer
+                                                                        {t('admin.activate')}
                                                                     </button>
                                                                 )}
                                                             </div>
@@ -672,7 +676,7 @@ export default function AdminDashboard() {
                         <section className="rounded-3xl border border-borderGlass bg-surface p-6 md:p-8">
                             <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
                                 <div>
-                                    <h2 className="text-xl font-bold text-white">Gestion des utilisateurs</h2>
+                                    <h2 className="text-xl font-bold text-white">{t('admin.userManagement')}</h2>
                                     <p className="text-white/55 text-sm mt-1">
                                         Comptes candidats, recruteurs et administrateurs.
                                     </p>
@@ -690,22 +694,21 @@ export default function AdminDashboard() {
                                         value={userSearch}
                                         onChange={(event) => setUserSearch(event.target.value)}
                                         className="w-full rounded-2xl border border-borderGlass bg-obsidian/60 py-3 pl-11 pr-4 text-sm text-white outline-none transition-colors placeholder:text-white/35 focus:border-accent/50"
-                                        placeholder="Chercher par nom, email ou role"
+                                        placeholder={t('admin.searchUsers')}
                                     />
                                 </label>
-                                <label className="relative">
-                                    <Filter size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/35" />
-                                    <select
-                                        value={userRoleFilter}
-                                        onChange={(event) => setUserRoleFilter(event.target.value)}
-                                        className="w-full min-w-44 rounded-2xl border border-borderGlass bg-obsidian/60 py-3 pl-11 pr-4 text-sm text-white outline-none transition-colors focus:border-accent/50"
-                                    >
-                                        <option value="all">Tous roles</option>
-                                        <option value="candidat">Candidats</option>
-                                        <option value="recruteur">Recruteurs</option>
-                                        <option value="admin">Admins</option>
-                                    </select>
-                                </label>
+                                <SmartSelect
+                                    value={userRoleFilter}
+                                    onChange={setUserRoleFilter}
+                                    icon={Filter}
+                                    options={[
+                                        { value: 'all', label: t('admin.allRoles') },
+                                        { value: 'candidat', label: t('auth.candidate') },
+                                        { value: 'recruteur', label: t('auth.recruiter') },
+                                        { value: 'admin', label: 'Admin' },
+                                    ]}
+                                    className="min-w-44"
+                                />
                             </div>
 
                             {filteredUsers.length === 0 ? (
@@ -719,8 +722,8 @@ export default function AdminDashboard() {
                                             <tr className="border-b border-borderGlass text-xs uppercase tracking-wider text-white/50">
                                                 <th className="px-4 py-3 font-semibold">Nom</th>
                                                 <th className="px-4 py-3 font-semibold">Email</th>
-                                                <th className="px-4 py-3 font-semibold">Role</th>
-                                                <th className="px-4 py-3 font-semibold">Creation</th>
+                                                <th className="px-4 py-3 font-semibold">{t('admin.role')}</th>
+                                                <th className="px-4 py-3 font-semibold">{t('admin.createdAt')}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -762,11 +765,11 @@ export default function AdminDashboard() {
                             <div>
                                 <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-amber-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-amber-200">
                                     <AlertTriangle size={13} />
-                                    Moderation
+                                    {t('admin.moderationBadge')}
                                 </p>
-                                <h2 className="text-xl font-bold text-white">Motif de suspension</h2>
+                                <h2 className="text-xl font-bold text-white">{t('admin.suspensionReason')}</h2>
                                 <p className="mt-1 text-sm text-white/55">
-                                    {suspensionTarget.titre_poste || 'Offre selectionnee'}
+                                    {suspensionTarget.titre_poste || t('admin.selectedOffer')}
                                 </p>
                             </div>
                             <button
@@ -775,13 +778,13 @@ export default function AdminDashboard() {
                                 disabled={suspensionBusy}
                                 className="rounded-full border border-borderGlass bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/65 transition-colors hover:border-white/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                                Fermer
+                                {t('common.close')}
                             </button>
                         </div>
 
                         <label className="block">
                             <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/45">
-                                Motif de suspension
+                                {t('admin.suspensionReason')}
                             </span>
                             <textarea
                                 value={suspensionReason}
@@ -789,12 +792,12 @@ export default function AdminDashboard() {
                                 maxLength={500}
                                 rows={4}
                                 className="w-full resize-none rounded-2xl border border-borderGlass bg-obsidian/70 px-4 py-3 text-sm text-white outline-none transition-colors placeholder:text-white/30 focus:border-amber-400/50"
-                                placeholder="Ex: Informations insuffisantes, contenu non conforme..."
+                                placeholder={t('admin.reasonPlaceholder')}
                             />
                         </label>
 
                         <p className="mt-2 text-xs text-white/40">
-                            Optionnel. Si vous reactivez l'offre, ce motif sera efface automatiquement.
+                            {t('admin.reasonOptional')}
                         </p>
 
                         <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -804,14 +807,14 @@ export default function AdminDashboard() {
                                 disabled={suspensionBusy}
                                 className="rounded-full border border-borderGlass bg-white/5 px-5 py-2.5 text-sm font-semibold text-white/75 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                                Annuler
+                                {t('common.cancel')}
                             </button>
                             <button
                                 type="submit"
                                 disabled={suspensionBusy}
                                 className="rounded-full border border-amber-400/35 bg-amber-500/20 px-5 py-2.5 text-sm font-semibold text-amber-100 transition-colors hover:bg-amber-500/30 disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                                {suspensionBusy ? 'Suspension...' : 'Confirmer la suspension'}
+                                {suspensionBusy ? t('admin.suspending') : t('admin.confirmSuspend')}
                             </button>
                         </div>
                     </motion.form>

@@ -68,7 +68,7 @@ function getEstablishmentName(job) {
         || job?.etablissement
         || job?.recruteur?.recruteurProfile?.nom_etablissement
         || job?.recruteur?.recruteur_profile?.nom_etablissement
-        || 'Etablissement confidentiel'
+        || ''
     );
 }
 
@@ -95,17 +95,17 @@ function getTypeMeta(job) {
     };
 }
 
-function getCountdown(expiresAt) {
-    if (!expiresAt) return 'Date non disponible';
+function getCountdown(expiresAt, t) {
+    if (!expiresAt) return t('jobCard.dateUnavailable');
     const targetTime = new Date(expiresAt).getTime();
-    if (Number.isNaN(targetTime)) return 'Date non disponible';
+    if (Number.isNaN(targetTime)) return t('jobCard.dateUnavailable');
 
     const diff = targetTime - Date.now();
-    if (diff <= 0) return 'Expiree';
+    if (diff <= 0) return t('jobCard.expired');
 
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-    return `${days}j ${hours}h restantes`;
+    return t('jobCard.remaining', { time: `${days}j ${hours}h` });
 }
 
 function formatDate(dateString) {
@@ -123,13 +123,13 @@ function isUrgent(expiresAt) {
     return diff > 0 && diff < 3 * 24 * 60 * 60 * 1000;
 }
 
-function formatSalary(salaire) {
+function formatSalary(salaire, t) {
     if (salaire === null || salaire === undefined || salaire === '') {
-        return 'Non specifie';
+        return t('common.notSpecified');
     }
 
     const amount = Number(salaire);
-    return Number.isFinite(amount) ? `${amount.toLocaleString('fr-FR')} MAD` : 'Non specifie';
+    return Number.isFinite(amount) ? `${amount.toLocaleString('fr-FR')} MAD` : t('common.notSpecified');
 }
 
 function EstablishmentVisual({ job, compact = false }) {
@@ -160,7 +160,7 @@ function EstablishmentVisual({ job, compact = false }) {
     );
 }
 
-function SaveButton({ isSaved, saving, onToggle }) {
+function SaveButton({ isSaved, saving, onToggle, t }) {
     if (!onToggle) {
         return null;
     }
@@ -181,10 +181,10 @@ function SaveButton({ isSaved, saving, onToggle }) {
                     ? 'border-accent/40 bg-accent/15 text-accent hover:bg-accent hover:text-white'
                     : 'border-borderGlass bg-white/5 text-white/72 hover:border-accent/45 hover:text-white'
             }`}
-            title={isSaved ? 'Retirer des favoris' : 'Sauvegarder cette offre'}
+            title={isSaved ? t('jobCard.unsaveTitle') : t('jobCard.saveTitle')}
         >
             <Icon size={14} />
-            {isSaved ? 'Sauvegardee' : 'Sauver'}
+            {isSaved ? t('jobCard.saved') : t('jobCard.save')}
         </button>
     );
 }
@@ -193,7 +193,7 @@ export default function JobCard({ job, variant = 'grid', isSaved = false, saving
     const { t } = useI18n();
     const urgent = isUrgent(job?.expires_at);
     const contractClass = contractStyles[job?.type_contrat] || 'bg-white/10 text-white/75 border-white/20';
-    const countdown = getCountdown(job?.expires_at);
+    const countdown = getCountdown(job?.expires_at, t);
     const expiresDate = formatDate(job?.expires_at);
     const postedDate = formatDate(job?.created_at);
     const hasQuiz = Boolean(job?.quiz_exists || job?.quiz);
@@ -201,7 +201,7 @@ export default function JobCard({ job, variant = 'grid', isSaved = false, saving
     const matchScore = calculateMatchScore(job);
     const matchTone = matchScore ? getMatchTone(matchScore) : null;
     const matchReasons = getMatchReasons(job);
-    const establishmentName = getEstablishmentName(job);
+    const establishmentName = getEstablishmentName(job) || t('common.establishmentConfidential');
     const establishmentType = getTypeMeta(job).label;
 
     if (variant === 'list') {
@@ -228,13 +228,13 @@ export default function JobCard({ job, variant = 'grid', isSaved = false, saving
                             )}
                             {urgent && (
                                 <span className="inline-flex animate-pulse rounded-full border border-rose-400/40 bg-rose-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-rose-200">
-                                    Urgent
+                                    {t('jobCard.urgent')}
                                 </span>
                             )}
                         </div>
 
                         <p className="job-card-company mb-1 truncate text-sm font-semibold text-white/62">{establishmentName}</p>
-                        <h3 className="job-card-title break-words text-2xl font-black leading-tight text-white">{job?.titre_poste || 'Offre'}</h3>
+                        <h3 className="job-card-title break-words text-2xl font-black leading-tight text-white">{job?.titre_poste || t('common.offer')}</h3>
 
                         <div className="mt-4 flex flex-wrap gap-2.5">
                             <span className="job-card-badge inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white/80">
@@ -249,7 +249,7 @@ export default function JobCard({ job, variant = 'grid', isSaved = false, saving
 
                             <span className="job-card-badge inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white/80">
                                 <DollarSign size={13} className="text-accent" />
-                                {formatSalary(job?.salaire)}
+                                {formatSalary(job?.salaire, t)}
                             </span>
 
                             {hasQuiz && (
@@ -262,7 +262,7 @@ export default function JobCard({ job, variant = 'grid', isSaved = false, saving
                             {applicationsCount > 0 && (
                                 <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/25 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-200">
                                     <Users size={13} />
-                                    {applicationsCount} candidat{applicationsCount > 1 ? 's' : ''}
+                                    {applicationsCount} {applicationsCount > 1 ? t('jobCard.candidatePlural') : t('jobCard.candidateSingular')}
                                 </span>
                             )}
                         </div>
@@ -282,9 +282,9 @@ export default function JobCard({ job, variant = 'grid', isSaved = false, saving
                         <div className="text-xs text-white/55">
                             <p className="inline-flex items-center gap-1.5 lg:justify-end">
                                 <Clock3 size={13} className="text-accent" />
-                                Publie le {postedDate}
+                                {t('jobCard.publishedOn', { date: postedDate })}
                             </p>
-                            <p className="mt-2 text-white/45">Fin le {expiresDate}</p>
+                            <p className="mt-2 text-white/45">{t('jobCard.endsOn', { date: expiresDate })}</p>
                             <p className="mt-1 font-semibold text-white/70">{countdown}</p>
                         </div>
 
@@ -292,9 +292,9 @@ export default function JobCard({ job, variant = 'grid', isSaved = false, saving
                             to={`/jobs/${job?.id}`}
                             className="inline-flex justify-center rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-accent/90"
                         >
-                            Voir l'offre
+                            {t('common.viewOffer')}
                         </Link>
-                        <SaveButton isSaved={isSaved} saving={saving} onToggle={onToggleSaved} />
+                        <SaveButton isSaved={isSaved} saving={saving} onToggle={onToggleSaved} t={t} />
                     </div>
                 </div>
             </motion.article>
@@ -317,7 +317,7 @@ export default function JobCard({ job, variant = 'grid', isSaved = false, saving
 
                 <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
-                        <h3 className="job-card-title break-words text-xl font-bold leading-snug text-white">{job?.titre_poste || 'Offre'}</h3>
+                        <h3 className="job-card-title break-words text-xl font-bold leading-snug text-white">{job?.titre_poste || t('common.offer')}</h3>
                         <p className="job-card-company mt-1 text-sm font-medium text-white/60">{establishmentName}</p>
                     </div>
 
@@ -331,7 +331,7 @@ export default function JobCard({ job, variant = 'grid', isSaved = false, saving
 
                         {urgent && (
                             <span className="inline-flex animate-pulse rounded-full border border-rose-400/40 bg-rose-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-rose-200">
-                                Urgent
+                                    {t('jobCard.urgent')}
                             </span>
                         )}
                     </div>
@@ -350,7 +350,7 @@ export default function JobCard({ job, variant = 'grid', isSaved = false, saving
 
                     <span className="job-card-badge inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white/80">
                         <DollarSign size={13} className="text-accent" />
-                        {formatSalary(job?.salaire)}
+                        {formatSalary(job?.salaire, t)}
                     </span>
 
                     {hasQuiz && (
@@ -363,7 +363,7 @@ export default function JobCard({ job, variant = 'grid', isSaved = false, saving
                     {applicationsCount > 0 && (
                         <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/25 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-200">
                             <Users size={13} />
-                            {applicationsCount} candidat{applicationsCount > 1 ? 's' : ''}
+                            {applicationsCount} {applicationsCount > 1 ? t('jobCard.candidatePlural') : t('jobCard.candidateSingular')}
                         </span>
                     )}
                 </div>
@@ -382,7 +382,7 @@ export default function JobCard({ job, variant = 'grid', isSaved = false, saving
                     <div className="text-xs text-white/45">
                         <p className="inline-flex items-center gap-1.5">
                             <Clock3 size={13} className="text-accent" />
-                            Fin le {expiresDate}
+                            {t('jobCard.endsOn', { date: expiresDate })}
                         </p>
                         <p className="mt-1 text-white/60">{countdown}</p>
                     </div>
@@ -391,9 +391,9 @@ export default function JobCard({ job, variant = 'grid', isSaved = false, saving
                         to={`/jobs/${job?.id}`}
                         className="inline-flex justify-center rounded-full bg-white/5 px-5 py-2 text-sm font-medium text-white transition-all duration-300 hover:bg-accent"
                     >
-                        Voir l'offre
+                        {t('common.viewOffer')}
                     </Link>
-                    <SaveButton isSaved={isSaved} saving={saving} onToggle={onToggleSaved} />
+                    <SaveButton isSaved={isSaved} saving={saving} onToggle={onToggleSaved} t={t} />
                 </div>
             </div>
         </motion.article>

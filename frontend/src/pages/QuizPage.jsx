@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, CheckCircle2, XCircle } from 'lucide-react';
 import api from '../api/axios';
+import { useI18n } from '../context/useAppExperience';
 
 const optionLabels = ['A', 'B', 'C', 'D'];
 
@@ -13,6 +14,7 @@ function extractQuiz(payload) {
 export default function QuizPage() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { t } = useI18n();
 
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -34,14 +36,14 @@ export default function QuizPage() {
                     navigate('/candidat/dashboard', { replace: true });
                     return;
                 }
-                setError(requestError?.response?.data?.message || 'Impossible de charger le quiz.');
+                setError(requestError?.response?.data?.message || t('quiz.loadError'));
             } finally {
                 setLoading(false);
             }
         };
 
         fetchQuiz();
-    }, [id, navigate]);
+    }, [id, navigate, t]);
 
     useEffect(() => {
         if (!result) return undefined;
@@ -72,7 +74,7 @@ export default function QuizPage() {
         if (!questions.length) return;
 
         if (answeredCount < questions.length) {
-            setError('Veuillez repondre a toutes les questions avant validation.');
+            setError(t('quiz.answerAll'));
             return;
         }
 
@@ -90,7 +92,7 @@ export default function QuizPage() {
             const response = await api.post(`/offres/${id}/pass-quiz/submit`, payload);
             setResult(response?.data?.data || null);
         } catch (requestError) {
-            setError(requestError?.response?.data?.message || 'Erreur lors de la soumission du quiz.');
+            setError(requestError?.response?.data?.message || t('quiz.submitError'));
         } finally {
             setSubmitting(false);
         }
@@ -107,7 +109,7 @@ export default function QuizPage() {
                 {loading ? (
                     <div className="rounded-3xl border border-borderGlass bg-surface px-6 py-20 text-center">
                         <div className="mx-auto mb-4 h-9 w-9 animate-spin rounded-full border-2 border-white/20 border-t-accent" />
-                        <p className="text-white/60">Chargement du quiz...</p>
+                        <p className="text-white/60">{t('quiz.loading')}</p>
                     </div>
                 ) : error && !quiz ? (
                     <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-5 py-5 text-rose-200">
@@ -118,7 +120,7 @@ export default function QuizPage() {
                             className="mt-4 inline-flex items-center gap-2 rounded-xl border border-rose-300/30 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/15"
                         >
                             <ArrowLeft size={15} />
-                            Retour aux offres
+                            {t('quiz.backToOffers')}
                         </button>
                     </div>
                 ) : result ? (
@@ -127,29 +129,29 @@ export default function QuizPage() {
                         animate={{ opacity: 1, y: 0 }}
                         className="rounded-3xl border border-borderGlass bg-surface p-8 text-center"
                     >
-                        <h1 className="text-4xl font-black text-white">Resultat du quiz</h1>
+                        <h1 className="text-4xl font-black text-white">{t('quiz.result')}</h1>
                         <p className="mt-6 text-6xl font-black text-accent">{result?.score ?? 0}%</p>
                         <p className="mt-4 inline-flex items-center gap-2 text-lg font-semibold">
                             {result?.passed ? (
                                 <>
                                     <CheckCircle2 size={18} className="text-emerald-300" />
-                                    <span className="text-emerald-200">Reussi</span>
+                                    <span className="text-emerald-200">{t('quiz.passed')}</span>
                                 </>
                             ) : (
                                 <>
                                     <XCircle size={18} className="text-rose-300" />
-                                    <span className="text-rose-200">Non valide</span>
+                                    <span className="text-rose-200">{t('quiz.failed')}</span>
                                 </>
                             )}
                         </p>
-                        <p className="mt-2 text-white/65">Seuil requis: {quiz?.passing_score ?? 50}%</p>
+                        <p className="mt-2 text-white/65">{t('quiz.requiredScore', { score: quiz?.passing_score ?? 50 })}</p>
 
                         <button
                             type="button"
                             onClick={() => navigate('/candidat/dashboard', { replace: true })}
                             className="mt-8 rounded-xl bg-accent px-6 py-3 text-sm font-semibold text-white hover:bg-accent/90"
                         >
-                            Retour au dashboard
+                            {t('quiz.backDashboard')}
                         </button>
                     </motion.section>
                 ) : (
@@ -157,7 +159,7 @@ export default function QuizPage() {
                         <div className="mb-6">
                             <div className="mb-2 flex items-center justify-between text-xs uppercase tracking-wider text-white/55">
                                 <span>
-                                    Question {currentIndex + 1} / {total}
+                                    {t('quiz.question', { current: currentIndex + 1, total })}
                                 </span>
                                 <span>{Math.round(progress)}%</span>
                             </div>
@@ -216,7 +218,7 @@ export default function QuizPage() {
                                 className="inline-flex items-center gap-2 rounded-xl border border-borderGlass bg-white/5 px-4 py-2.5 text-sm text-white/80 hover:text-white disabled:opacity-40"
                             >
                                 <ArrowLeft size={15} />
-                                Precedent
+                                {t('quiz.previous')}
                             </button>
 
                             {isLast ? (
@@ -226,7 +228,7 @@ export default function QuizPage() {
                                     onClick={submitQuiz}
                                     className="rounded-xl bg-accent px-6 py-2.5 text-sm font-semibold text-white hover:bg-accent/90 disabled:opacity-70"
                                 >
-                                    {submitting ? 'Soumission...' : 'Valider le quiz'}
+                                    {submitting ? t('quiz.submitting') : t('quiz.submit')}
                                 </button>
                             ) : (
                                 <button
@@ -234,7 +236,7 @@ export default function QuizPage() {
                                     onClick={() => setCurrentIndex((prev) => Math.min(prev + 1, total - 1))}
                                     className="inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-2.5 text-sm font-semibold text-white hover:bg-accent/90"
                                 >
-                                    Suivant
+                                    {t('quiz.next')}
                                     <ArrowRight size={15} />
                                 </button>
                             )}

@@ -49,10 +49,10 @@ function extractApplications(payload) {
     return [];
 }
 
-function formatSalary(value) {
-    if (value === null || value === undefined || value === '') return 'Non specifie';
+function formatSalary(value, t) {
+    if (value === null || value === undefined || value === '') return t('common.salaryNotSpecified');
     const amount = Number(value);
-    return Number.isFinite(amount) ? `${amount.toLocaleString('fr-FR')} MAD` : 'Non specifie';
+    return Number.isFinite(amount) ? `${amount.toLocaleString('fr-FR')} MAD` : t('common.salaryNotSpecified');
 }
 
 function formatDate(dateString) {
@@ -62,14 +62,14 @@ function formatDate(dateString) {
     return date.toLocaleDateString('fr-FR');
 }
 
-function getCountdownParts(expiresAt) {
+function getCountdownParts(expiresAt, t) {
     if (!expiresAt) return { expired: false, label: '-' };
 
     const target = new Date(expiresAt).getTime();
     if (Number.isNaN(target)) return { expired: false, label: '-' };
 
     const diff = target - Date.now();
-    if (diff <= 0) return { expired: true, label: 'Expiree' };
+    if (diff <= 0) return { expired: true, label: t('status.expired') };
 
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
@@ -92,17 +92,17 @@ function getStatusBadgeClass(status) {
     return 'bg-white/10 text-white/80 border-white/25';
 }
 
-function normalizeStatus(status) {
-    if (status === 'active') return 'Active';
-    if (status === 'expired') return 'Expiree';
-    if (status === 'suspended') return 'Suspendue';
+function normalizeStatus(status, t) {
+    if (status === 'active') return t('status.active');
+    if (status === 'expired') return t('status.expired');
+    if (status === 'suspended') return t('status.suspended');
     return status ?? '-';
 }
 
-function toReadableApplicationStatus(status) {
-    if (status === 'en_attente') return 'En attente';
-    if (status === 'acceptee') return 'Candidature acceptee';
-    if (status === 'refusee') return 'Candidature refusee';
+function toReadableApplicationStatus(status, t) {
+    if (status === 'en_attente') return t('status.pending');
+    if (status === 'acceptee') return t('jobDetail.accepted');
+    if (status === 'refusee') return t('jobDetail.rejected');
     return status ?? '-';
 }
 
@@ -239,7 +239,7 @@ function hasOfferQuiz(offer) {
 export default function JobDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { showToast } = useToast();
+    const { showToast, t } = useToast();
 
     const [offer, setOffer] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -343,7 +343,7 @@ export default function JobDetail() {
         return () => window.clearTimeout(timeoutId);
     }, [currentUser?.role, isAuthenticated]);
 
-    const countdown = getCountdownParts(offer?.expires_at);
+    const countdown = getCountdownParts(offer?.expires_at, t);
     const etablissement = getEstablishmentName(offer);
     const establishmentType = getTypeMeta(offer).label;
     const isRecruteur = currentUser?.role === 'recruteur';
@@ -373,65 +373,65 @@ export default function JobDetail() {
     const hasCv = Boolean(currentProfile?.cv_path || currentProfile?.cv_url);
     const isReadyToApply = hasCompleteProfile && hasCv;
     const isOfferAvailable = Boolean(offer && offer.status === 'active' && !countdown.expired);
-    const readinessMessage = 'Completez votre profil avant de postuler.';
+    const readinessMessage = t('jobDetail.profileWarning');
     const applicationAction = useMemo(() => {
         if (isRecruteur) {
-            return { label: 'Vous etes recruteur', disabled: true, onClick: null };
+            return { label: t('nav.recruiterSpace'), disabled: true, onClick: null };
         }
 
         if (!isAuthenticated) {
             if (offer && !isOfferAvailable) {
-                return { label: 'Offre indisponible', disabled: true, onClick: null };
+                return { label: t('common.unavailable'), disabled: true, onClick: null };
             }
 
             return {
-                label: 'Postuler maintenant',
+                label: t('jobDetail.applyNow'),
                 disabled: false,
                 onClick: () => navigate('/auth', { replace: true }),
             };
         }
 
         if (!isCandidate) {
-            return { label: 'Compte candidat requis', disabled: true, onClick: null };
+            return { label: t('jobDetail.candidateAccountRequired'), disabled: true, onClick: null };
         }
 
         if (existingApplication) {
             if (hasPendingQuiz) {
                 return {
-                    label: 'Passer le quiz',
+                    label: t('jobDetail.takeQuiz'),
                     disabled: false,
                     onClick: () => navigate(`/candidat/quiz/${id}`),
                 };
             }
 
             if (existingApplication.status === 'acceptee') {
-                return { label: 'Candidature acceptee', disabled: true, onClick: null };
+                return { label: t('jobDetail.accepted'), disabled: true, onClick: null };
             }
 
             if (existingApplication.status === 'refusee') {
-                return { label: 'Candidature refusee', disabled: true, onClick: null };
+                return { label: t('jobDetail.rejected'), disabled: true, onClick: null };
             }
 
             if (hasCompletedQuiz) {
-                return { label: 'Quiz envoye - en attente de reponse', disabled: true, onClick: null };
+                return { label: t('jobDetail.quizSent'), disabled: true, onClick: null };
             }
 
-            return { label: 'En attente de reponse', disabled: true, onClick: null };
+            return { label: t('jobDetail.pending'), disabled: true, onClick: null };
         }
 
         if (offer && !isOfferAvailable) {
-            return { label: 'Offre indisponible', disabled: true, onClick: null };
+            return { label: t('common.unavailable'), disabled: true, onClick: null };
         }
 
         if (!isReadyToApply) {
             return {
-                label: 'Completer mon profil',
+                label: t('jobDetail.completeProfile'),
                 disabled: false,
                 onClick: () => navigate('/candidat/profile'),
             };
         }
 
-        return { label: 'Postuler maintenant', disabled: false, onClick: null };
+        return { label: t('jobDetail.applyNow'), disabled: false, onClick: null };
     }, [
         existingApplication,
         hasCompletedQuiz,
@@ -444,6 +444,7 @@ export default function JobDetail() {
         isRecruteur,
         navigate,
         offer,
+        t,
     ]);
 
     const handleOpenPostuler = () => {
@@ -598,7 +599,7 @@ export default function JobDetail() {
                 <main className="container mx-auto px-6 pt-32 pb-16">
                     <div className="rounded-3xl border border-borderGlass bg-surface px-6 py-16 text-center">
                         <div className="mx-auto mb-4 h-9 w-9 animate-spin rounded-full border-2 border-white/20 border-t-accent" />
-                        <p className="text-white/60">Chargement des details...</p>
+                        <p className="text-white/60">{t('common.loading')}</p>
                     </div>
                 </main>
             ) : error ? (
@@ -617,7 +618,7 @@ export default function JobDetail() {
                                 className="mb-5 inline-flex items-center gap-2 rounded-full border border-borderGlass bg-white/5 px-4 py-2 text-sm font-semibold text-white/72 transition-colors hover:border-accent/45 hover:text-white"
                             >
                                 <ArrowLeft size={15} />
-                                Retour aux offres
+                                {t('common.backToOffers')}
                             </Link>
 
                             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-stretch">
@@ -628,7 +629,7 @@ export default function JobDetail() {
                                                 {offer?.type_contrat || 'Contrat'}
                                             </span>
                                             <span className={`inline-flex rounded-full border px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider ${getStatusBadgeClass(offer?.status)}`}>
-                                                {normalizeStatus(offer?.status)}
+                                                {normalizeStatus(offer?.status, t)}
                                             </span>
                                             <span className="inline-flex rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-white/70">
                                                 {establishmentType}
@@ -636,7 +637,7 @@ export default function JobDetail() {
                                             {hasQuiz && (
                                                 <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/15 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-accent">
                                                     <ShieldCheck size={12} />
-                                                    Quiz requis
+                                                    {t('jobDetail.quizRequired')}
                                                 </span>
                                             )}
                                         </div>
@@ -650,29 +651,29 @@ export default function JobDetail() {
                                         <div className="mt-3 flex flex-wrap gap-2 text-sm text-white/64">
                                             <span className="inline-flex items-center gap-1.5">
                                                 <MapPin size={15} className="text-accent" />
-                                                {offer?.ville || 'Ville non renseignee'}
+                                                {offer?.ville || t('recruiter.dashboard.cityMissing')}
                                             </span>
                                             <span className="inline-flex items-center gap-1.5">
                                                 <Briefcase size={15} className="text-accent" />
-                                                {formatSalary(offer?.salaire)}
+                                                {formatSalary(offer?.salaire, t)}
                                             </span>
                                         </div>
                                     </div>
 
                                     <div className="mt-6 grid gap-3 sm:grid-cols-3">
                                         <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                                            <p className="text-xs uppercase tracking-wider text-white/42">Date limite</p>
+                                            <p className="text-xs uppercase tracking-wider text-white/42">{t('jobDetail.deadline')}</p>
                                             <p className="mt-1 font-semibold text-white">{formatDate(offer?.expires_at)}</p>
                                         </div>
                                         <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                                            <p className="text-xs uppercase tracking-wider text-white/42">Temps restant</p>
+                                            <p className="text-xs uppercase tracking-wider text-white/42">{t('jobDetail.remainingTime')}</p>
                                             <p key={countdownTick} className={`mt-1 font-semibold ${countdown.expired ? 'text-rose-300' : 'text-emerald-300'}`}>
                                                 {countdown.label}
                                             </p>
                                         </div>
                                         <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
                                             <p className="text-xs uppercase tracking-wider text-white/42">Quiz</p>
-                                            <p className="mt-1 font-semibold text-white">{hasQuiz ? 'Requis' : 'Non requis'}</p>
+                                            <p className="mt-1 font-semibold text-white">{hasQuiz ? t('jobDetail.quizRequired') : t('jobDetail.notRequired')}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -686,42 +687,42 @@ export default function JobDetail() {
                         <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_390px]">
                             <section className="space-y-6">
                                 <div className="rounded-3xl border border-borderGlass bg-surface p-6 shadow-[0_18px_55px_rgba(0,0,0,0.10)] md:p-7">
-                                    <h2 className="text-xl font-bold text-white">Description</h2>
+                                    <h2 className="text-xl font-bold text-white">{t('jobDetail.description')}</h2>
                                     <p className="mt-4 whitespace-pre-line text-sm leading-7 text-white/68 md:text-base">
-                                        {offer?.description || 'Aucune description renseignee.'}
+                                        {offer?.description || '-'}
                                     </p>
                                 </div>
 
                                 <div className="rounded-3xl border border-borderGlass bg-surface p-6 shadow-[0_18px_55px_rgba(0,0,0,0.10)] md:p-7">
-                                    <h2 className="text-xl font-bold text-white">Informations principales</h2>
+                                    <h2 className="text-xl font-bold text-white">{t('jobDetail.mainInfo')}</h2>
                                     <div className="mt-5 grid gap-3 md:grid-cols-2">
-                                        <InfoRow icon={MapPin} label="Ville" value={offer?.ville || '-'} />
-                                        <InfoRow icon={Briefcase} label="Salaire" value={formatSalary(offer?.salaire)} />
-                                        <InfoRow icon={BadgeCheck} label="Contrat" value={offer?.type_contrat || '-'} />
-                                        <InfoRow icon={CalendarClock} label="Date limite" value={formatDate(offer?.expires_at)} />
+                                        <InfoRow icon={MapPin} label={t('common.city')} value={offer?.ville || '-'} />
+                                        <InfoRow icon={Briefcase} label={t('common.salary')} value={formatSalary(offer?.salaire, t)} />
+                                        <InfoRow icon={BadgeCheck} label={t('common.contract')} value={offer?.type_contrat || '-'} />
+                                        <InfoRow icon={CalendarClock} label={t('jobDetail.deadline')} value={formatDate(offer?.expires_at)} />
                                         <InfoRow
                                             icon={Clock3}
-                                            label="Temps restant"
+                                            label={t('jobDetail.remainingTime')}
                                             value={countdown.label}
                                             tone={countdown.expired ? 'danger' : 'success'}
                                         />
                                         <InfoRow
                                             icon={ShieldCheck}
                                             label="Quiz"
-                                            value={hasQuiz ? 'Quiz requis' : 'Non requis'}
+                                            value={hasQuiz ? t('jobDetail.quizRequired') : t('jobDetail.notRequired')}
                                             tone={hasQuiz ? 'warning' : 'default'}
                                         />
                                     </div>
                                 </div>
 
                                 <div className="rounded-3xl border border-borderGlass bg-surface p-6 shadow-[0_18px_55px_rgba(0,0,0,0.10)] md:p-7">
-                                    <h2 className="text-xl font-bold text-white">Etablissement</h2>
+                                    <h2 className="text-xl font-bold text-white">{t('jobDetail.establishment')}</h2>
                                     <div className="mt-5 grid gap-5 md:grid-cols-[180px_minmax(0,1fr)] md:items-stretch">
                                         <EstablishmentVisual offer={offer} className="min-h-[160px]" />
                                         <div className="grid gap-3">
-                                            <InfoRow icon={Building2} label="Nom" value={etablissement} />
+                                            <InfoRow icon={Building2} label={t('recruiter.profile.establishmentName')} value={etablissement} />
                                             <InfoRow icon={UtensilsCrossed} label="Type" value={establishmentType} />
-                                            <InfoRow icon={MapPin} label="Ville" value={offer?.ville || '-'} />
+                                            <InfoRow icon={MapPin} label={t('common.city')} value={offer?.ville || '-'} />
                                         </div>
                                     </div>
                                 </div>
@@ -733,7 +734,7 @@ export default function JobDetail() {
                                                 <ShieldCheck size={22} />
                                             </span>
                                             <div>
-                                                <h2 className="text-xl font-bold text-white">Quiz de preselection</h2>
+                                                <h2 className="text-xl font-bold text-white">{t('jobDetail.quizRequired')}</h2>
                                                 <p className="mt-2 text-sm leading-6 text-white/65">
                                                     Cette offre demande un quiz metier apres la postulation. Vous postulez d'abord, puis le quiz met a jour la meme candidature.
                                                 </p>
@@ -747,15 +748,15 @@ export default function JobDetail() {
                                 <div className="rounded-3xl border border-borderGlass bg-surface p-5 shadow-[0_18px_55px_rgba(0,0,0,0.14)] md:p-6">
                                     <div className="flex items-start justify-between gap-4">
                                         <div>
-                                            <p className="text-xs font-semibold uppercase tracking-wider text-accent">Candidature</p>
-                                            <h3 className="mt-1 text-xl font-bold text-white">Postuler a cette offre</h3>
+                                            <p className="text-xs font-semibold uppercase tracking-wider text-accent">{t('jobDetail.application')}</p>
+                                            <h3 className="mt-1 text-xl font-bold text-white">{t('jobDetail.applyToOffer')}</h3>
                                         </div>
                                         <span className="rounded-2xl border border-borderGlass bg-white/5 p-3 text-accent">
                                             <Send size={18} />
                                         </span>
                                     </div>
                                     <p className="mt-3 text-sm leading-6 text-white/60">
-                                        Votre CV ajoute dans le profil sera envoye automatiquement au recruteur.
+                                        {t('jobDetail.cvAuto')}
                                     </p>
 
                                     {isCandidate && (
@@ -781,7 +782,7 @@ export default function JobDetail() {
                                                     : 'border-amber-400/30 bg-amber-500/10 text-amber-200'
                                             }`}>
                                                 {hasCompleteProfile ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
-                                                Profil complete
+                                                {t('jobDetail.profileComplete')}
                                             </div>
                                             <div className={`flex items-center gap-2 rounded-2xl border px-3 py-2.5 text-xs font-semibold ${
                                                 hasCv
@@ -789,7 +790,7 @@ export default function JobDetail() {
                                                     : 'border-amber-400/30 bg-amber-500/10 text-amber-200'
                                             }`}>
                                                 {hasCv ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
-                                                CV ajoute
+                                                {t('jobDetail.cvAdded')}
                                             </div>
                                         </div>
                                     )}
@@ -798,7 +799,7 @@ export default function JobDetail() {
                                         <div className="mt-4 rounded-2xl border border-amber-400/30 bg-amber-500/10 p-4">
                                             <p className="text-sm font-semibold text-amber-100">{readinessMessage}</p>
                                             <p className="mt-1 text-xs leading-5 text-amber-100/70">
-                                                Ajoutez vos informations et votre CV PDF dans le profil candidat.
+                                                {t('jobDetail.profileWarningHelp')}
                                             </p>
                                             <button
                                                 type="button"
@@ -806,7 +807,7 @@ export default function JobDetail() {
                                                 className="mt-3 inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-accent/90"
                                             >
                                                 <FileText size={13} />
-                                                Aller au profil
+                                                {t('jobDetail.goProfile')}
                                             </button>
                                         </div>
                                     )}
@@ -815,9 +816,9 @@ export default function JobDetail() {
                                         <div className="mt-4 rounded-2xl border border-borderGlass bg-white/5 p-4">
                                             <div className="flex flex-col gap-3">
                                                 <div>
-                                                    <p className="font-semibold text-white">Vous avez deja postule a cette offre.</p>
+                                                    <p className="font-semibold text-white">{t('jobDetail.alreadyApplied')}</p>
                                                     <p className="mt-1 text-xs text-white/55">
-                                                        Suivez le statut depuis votre dashboard candidat.
+                                                        {t('jobDetail.followDashboard')}
                                                     </p>
                                                 </div>
                                                 <span
@@ -825,21 +826,21 @@ export default function JobDetail() {
                                                         applicationStatusBadgeClasses[existingApplication.status] || 'border-white/20 bg-white/10 text-white/75'
                                                     }`}
                                                 >
-                                                    {toReadableApplicationStatus(existingApplication.status)}
+                                                    {toReadableApplicationStatus(existingApplication.status, t)}
                                                 </span>
                                             </div>
 
                                             <div className="mt-3 flex flex-wrap gap-2">
                                                 <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/70">
                                                     <ShieldCheck size={13} className="text-accent" />
-                                                    Quiz: {existingApplication.quiz_score ?? (applicationHasQuiz ? 'En attente' : 'Non requis')}
+                                                    {t('common.quiz')}: {existingApplication.quiz_score ?? (applicationHasQuiz ? t('jobDetail.pending') : t('jobDetail.notRequired'))}
                                                 </span>
                                                 <button
                                                     type="button"
                                                     onClick={() => navigate('/candidat/dashboard')}
                                                     className="inline-flex items-center gap-1.5 rounded-full border border-borderGlass bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/75 transition-colors hover:border-accent/40 hover:text-white"
                                                 >
-                                                    Dashboard
+                                                    {t('common.dashboard')}
                                                 </button>
                                                 {hasPendingQuiz && (
                                                     <button
@@ -847,7 +848,7 @@ export default function JobDetail() {
                                                         onClick={() => navigate(`/candidat/quiz/${id}`)}
                                                         className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-accent/90"
                                                     >
-                                                        Passer le quiz
+                                                        {t('jobDetail.takeQuiz')}
                                                     </button>
                                                 )}
                                             </div>
@@ -862,7 +863,7 @@ export default function JobDetail() {
                                         className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/45"
                                     >
                                         {hasPendingQuiz ? <ShieldCheck size={16} /> : <Send size={16} />}
-                                        {applicationsLoading && isCandidate ? 'Verification...' : applicationAction.label}
+                                        {applicationsLoading && isCandidate ? t('common.loading') : applicationAction.label}
                                     </button>
 
                                     {isCandidate && (isOfferAvailable || isSaved) && (
@@ -877,7 +878,7 @@ export default function JobDetail() {
                                             }`}
                                         >
                                             {isSaved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
-                                            {savingOffer ? 'Mise a jour...' : isSaved ? 'Offre sauvegardee' : 'Sauvegarder cette offre'}
+                                            {savingOffer ? t('jobDetail.updating') : isSaved ? t('jobDetail.savedOffer') : t('jobDetail.saveOffer')}
                                         </button>
                                     )}
 
@@ -919,9 +920,9 @@ export default function JobDetail() {
                         >
                             <div className="mb-5 flex items-start justify-between">
                                 <div>
-                                    <h3 className="text-xl font-semibold text-white">Confirmer la postulation</h3>
+                                    <h3 className="text-xl font-semibold text-white">{t('jobDetail.confirmApplication')}</h3>
                                     <p className="mt-1 text-sm text-white/60">
-                                        SmartJobs utilisera le CV deja ajoute dans votre profil candidat.
+                                        {t('jobDetail.confirmHelp')}
                                     </p>
                                 </div>
 
@@ -938,10 +939,10 @@ export default function JobDetail() {
                                 <div className="rounded-2xl border border-borderGlass bg-surface p-4">
                                     <p className="inline-flex items-center gap-2 text-sm font-semibold text-white">
                                         <FileText size={16} className="text-accent" />
-                                        CV du profil pret a envoyer
+                                        {t('jobDetail.profileCvReady')}
                                     </p>
                                     <p className="mt-1 text-xs text-white/55">
-                                        Pour changer de CV, modifiez votre profil candidat avant de confirmer.
+                                        {t('jobDetail.changeCvHelp')}
                                     </p>
                                 </div>
 
@@ -952,7 +953,7 @@ export default function JobDetail() {
                                     disabled={submitLoading}
                                     className="w-full rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-accent/90 disabled:opacity-70"
                                 >
-                                    {submitLoading ? 'Envoi en cours...' : 'Confirmer la postulation'}
+                                    {submitLoading ? t('jobDetail.sending') : t('jobDetail.confirmSubmit')}
                                 </button>
                             </form>
                         </motion.div>

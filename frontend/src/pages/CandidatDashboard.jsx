@@ -20,6 +20,7 @@ import Navbar from '../components/Navbar';
 import api from '../api/axios';
 import { extractSavedOffers } from '../utils/savedJobs';
 import { getMatchReasons } from '../utils/matching';
+import { useI18n } from '../context/useAppExperience';
 
 const itemVariants = {
     hidden: { opacity: 0, y: 14 },
@@ -142,19 +143,19 @@ function formatDate(dateString) {
     return date.toLocaleDateString('fr-FR');
 }
 
-function formatSalary(salary) {
+function formatSalary(salary, t) {
     if (salary === null || salary === undefined || salary === '') {
-        return 'Salaire non précisé';
+        return t('common.salaryNotSpecified');
     }
 
     const amount = Number(salary);
-    return Number.isFinite(amount) ? `${amount.toLocaleString('fr-FR')} MAD` : 'Salaire non précisé';
+    return Number.isFinite(amount) ? `${amount.toLocaleString('fr-FR')} MAD` : t('common.salaryNotSpecified');
 }
 
-function toReadableStatus(status) {
-    if (status === 'en_attente') return 'En attente';
-    if (status === 'acceptee') return 'Acceptée';
-    if (status === 'refusee') return 'Refusée';
+function toReadableStatus(status, t) {
+    if (status === 'en_attente') return t('status.pending');
+    if (status === 'acceptee') return t('status.accepted');
+    if (status === 'refusee') return t('status.rejected');
     return status ?? '-';
 }
 
@@ -235,12 +236,12 @@ function isActiveOffer(offer) {
 function getCompletionState(user) {
     const profile = getCandidateProfile(user);
     const items = [
-        { key: 'ville', label: 'Ville', value: profile?.ville },
-        { key: 'experience', label: 'Expérience', value: profile?.experience },
-        { key: 'poste_recherche', label: 'Poste recherché', value: profile?.poste_recherche },
-        { key: 'disponibilite', label: 'Disponibilité', value: profile?.disponibilite },
-        { key: 'contrat_prefere', label: 'Contrat préféré', value: profile?.contrat_prefere },
-        { key: 'cv_path', label: 'CV', value: profile?.cv_path || profile?.cv_url },
+        { key: 'ville', labelKey: 'common.city', value: profile?.ville },
+        { key: 'experience', labelKey: 'candidate.profile.experience', value: profile?.experience },
+        { key: 'poste_recherche', labelKey: 'candidate.profile.positionWanted', value: profile?.poste_recherche },
+        { key: 'disponibilite', labelKey: 'candidate.profile.availability', value: profile?.disponibilite },
+        { key: 'contrat_prefere', labelKey: 'candidate.profile.preferredContract', value: profile?.contrat_prefere },
+        { key: 'cv_path', labelKey: 'common.cv', value: profile?.cv_path || profile?.cv_url },
     ];
     const completed = items.filter((item) => item.value !== null && item.value !== undefined && String(item.value).trim() !== '').length;
     const missing = items.filter((item) => !item.value || String(item.value).trim() === '');
@@ -330,7 +331,7 @@ async function fetchRecommendationPool(profile) {
     );
 }
 
-function RecommendedJobCard({ offer, profile }) {
+function RecommendedJobCard({ offer, profile, t }) {
     const hasQuiz = hasOfferQuiz(offer);
     const typeMeta = getEstablishmentTypeMeta(offer);
     const PlaceholderIcon = typeMeta.Icon;
@@ -357,13 +358,13 @@ function RecommendedJobCard({ offer, profile }) {
                 </div>
                 <div className="min-w-0 flex-1">
                     <p className="truncate text-xs font-semibold text-white/60">{getEstablishmentName(offer)}</p>
-                    <h3 className="mt-1 text-base font-bold leading-snug text-white">{offer?.titre_poste || 'Offre'}</h3>
+                    <h3 className="mt-1 text-base font-bold leading-snug text-white">{offer?.titre_poste || t('common.offer')}</h3>
                 </div>
                 <Link
                     to={`/jobs/${offer?.id}`}
                     className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-accent px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-accent/90"
                 >
-                    Voir l’offre
+                    {t('common.viewOffer')}
                     <ArrowRight size={13} />
                 </Link>
             </div>
@@ -377,7 +378,7 @@ function RecommendedJobCard({ offer, profile }) {
                     {offer?.type_contrat || '-'}
                 </span>
                 <span className="rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-xs text-white/75">
-                    {formatSalary(offer?.salaire)}
+                    {formatSalary(offer?.salaire, t)}
                 </span>
                 {hasQuiz && (
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent">
@@ -419,14 +420,14 @@ function SummaryRow({ label, value, tone = 'default' }) {
     );
 }
 
-function ApplicationTimeline({ application, offer }) {
+function ApplicationTimeline({ application, offer, t }) {
     const hasQuiz = hasOfferQuiz(offer);
     const quizDone = !hasQuiz || application.quiz_score !== null;
     const answered = application.status === 'acceptee' || application.status === 'refusee';
     const steps = [
-        { label: 'Postulee', done: true },
-        { label: hasQuiz ? 'Quiz' : 'Profil envoye', done: quizDone },
-        { label: 'Reponse', done: answered },
+        { label: t('candidate.dashboard.sent'), done: true },
+        { label: hasQuiz ? t('common.quiz') : t('candidate.dashboard.profileSent'), done: quizDone },
+        { label: t('status.accepted'), done: answered },
     ];
 
     return (
@@ -448,7 +449,7 @@ function ApplicationTimeline({ application, offer }) {
     );
 }
 
-function getCandidateNotifications(applications, completion) {
+function getCandidateNotifications(applications, completion, t) {
     const notifications = [];
     const pendingQuiz = applications.find((application) => {
         const offer = getOfferFromApplication(application);
@@ -459,28 +460,28 @@ function getCandidateNotifications(applications, completion) {
 
     if (!completion.isComplete) {
         notifications.push({
-            label: 'Profil incomplet',
+            label: t('candidate.profile.nextInfo'),
             description: `${completion.missing[0]?.label || 'Information'} manque pour ameliorer vos recommandations.`,
         });
     }
 
     if (pendingQuiz) {
         notifications.push({
-            label: 'Quiz en attente',
+            label: t('quiz.submit'),
             description: getOfferFromApplication(pendingQuiz)?.titre_poste || 'Une candidature attend votre quiz.',
         });
     }
 
     if (accepted) {
         notifications.push({
-            label: 'Candidature acceptee',
+            label: t('candidate.dashboard.accepted'),
             description: getOfferFromApplication(accepted)?.titre_poste || 'Un recruteur a accepte votre candidature.',
         });
     }
 
     if (rejected) {
         notifications.push({
-            label: 'Statut mis a jour',
+            label: t('common.status'),
             description: getOfferFromApplication(rejected)?.titre_poste || 'Une candidature a recu une reponse.',
         });
     }
@@ -489,6 +490,7 @@ function getCandidateNotifications(applications, completion) {
 }
 
 export default function CandidatDashboard() {
+    const { t } = useI18n();
     const location = useLocation();
     const [applications, setApplications] = useState([]);
     const [offerPool, setOfferPool] = useState([]);
@@ -542,6 +544,20 @@ export default function CandidatDashboard() {
     }, [loadDashboard]);
 
     useEffect(() => {
+        const syncProfile = () => {
+            loadDashboard();
+        };
+
+        window.addEventListener('smartjobs:user-updated', syncProfile);
+        window.addEventListener('focus', syncProfile);
+
+        return () => {
+            window.removeEventListener('smartjobs:user-updated', syncProfile);
+            window.removeEventListener('focus', syncProfile);
+        };
+    }, [loadDashboard]);
+
+    useEffect(() => {
         if (location.hash !== '#mes-candidatures') {
             return undefined;
         }
@@ -564,10 +580,11 @@ export default function CandidatDashboard() {
         getBackendBaseUrl(),
         completion.profile?.photo_url || completion.profile?.photo_path
     );
+    const missingItemLabel = completion.missing[0]?.labelKey ? t(completion.missing[0].labelKey) : t('common.missing');
     const missingText = completion.isComplete
-        ? 'Profil complet'
-        : `${completion.missing[0]?.label || 'Information'} manquant`;
-    const profileCtaLabel = completion.isComplete ? 'Modifier mon profil' : 'Compléter mon profil';
+        ? t('candidate.dashboard.profileComplete')
+        : t('candidate.dashboard.missingItem', { item: missingItemLabel });
+    const profileCtaLabel = completion.isComplete ? t('candidate.dashboard.editProfile') : t('candidate.dashboard.completeProfile');
 
     const stats = useMemo(() => {
         const sent = applications.length;
@@ -577,7 +594,7 @@ export default function CandidatDashboard() {
 
         return { sent, pending, accepted, rejected };
     }, [applications]);
-    const notifications = useMemo(() => getCandidateNotifications(applications, completion), [applications, completion]);
+    const notifications = useMemo(() => getCandidateNotifications(applications, completion, t), [applications, completion, t]);
     const savedOffersPreview = useMemo(() => savedOffers.slice(0, 3), [savedOffers]);
 
     const pendingQuizApplication = useMemo(() => applications.find((application) => {
@@ -590,49 +607,49 @@ export default function CandidatDashboard() {
     const nextAction = useMemo(() => {
         if (!completion.hasCoreProfile) {
             return {
-                title: 'Complétez vos informations',
-                description: 'Ajoutez votre ville, expérience et poste recherché pour recevoir de meilleures offres.',
-                label: 'Compléter mon profil',
+                title: t('candidate.profile.nextInfo'),
+                description: t('candidate.dashboard.subtitleIncomplete'),
+                label: t('candidate.dashboard.completeProfile'),
                 to: '/candidat/profile',
             };
         }
 
         if (!completion.hasPreferences) {
             return {
-                title: 'Ajoutez vos préférences',
-                description: 'La disponibilité et le contrat préféré améliorent la qualité des recommandations.',
-                label: 'Compléter mon profil',
+                title: t('candidate.profile.nextPreferences'),
+                description: t('candidate.dashboard.recommendedSubtitle'),
+                label: t('candidate.dashboard.completeProfile'),
                 to: '/candidat/profile',
             };
         }
 
         if (!completion.hasCv) {
             return {
-                title: 'Ajoutez votre CV',
-                description: 'Votre CV sera réutilisé automatiquement à chaque postulation.',
-                label: 'Ajouter mon CV',
+                title: t('candidate.profile.nextCv'),
+                description: t('candidate.profile.cvReusable'),
+                label: t('candidate.profile.addCv'),
                 to: '/candidat/profile',
             };
         }
 
         if (pendingQuizOfferId) {
             return {
-                title: 'Passez le quiz en attente',
+                title: t('quiz.submit'),
                 description: pendingQuizOffer?.titre_poste
                     ? `Quiz requis pour ${pendingQuizOffer.titre_poste}.`
                     : 'Une candidature attend votre quiz.',
-                label: 'Passer le quiz',
+                label: t('quiz.submit'),
                 to: `/candidat/quiz/${pendingQuizOfferId}`,
             };
         }
 
         return {
-            title: 'Explorez les nouvelles offres',
-            description: 'Votre profil est prêt. Continuez à postuler aux offres actives.',
-            label: 'Voir les offres',
+            title: t('candidate.dashboard.findJob'),
+            description: t('candidate.dashboard.subtitleComplete'),
+            label: t('common.viewOffers'),
             to: '/jobs',
         };
-    }, [completion.hasCoreProfile, completion.hasCv, completion.hasPreferences, pendingQuizOffer, pendingQuizOfferId]);
+    }, [completion.hasCoreProfile, completion.hasCv, completion.hasPreferences, pendingQuizOffer, pendingQuizOfferId, t]);
 
     const appliedOfferIds = useMemo(() => new Set(
         applications
@@ -684,7 +701,7 @@ export default function CandidatDashboard() {
                 {loading ? (
                     <div className="rounded-3xl border border-borderGlass bg-surface px-6 py-16 text-center">
                         <div className="mx-auto mb-4 h-9 w-9 animate-spin rounded-full border-2 border-white/20 border-t-accent" />
-                        <p className="text-white/60">Chargement du dashboard...</p>
+                        <p className="text-white/60">{t('candidate.dashboard.loading')}</p>
                     </div>
                 ) : (
                     <motion.div
@@ -713,12 +730,12 @@ export default function CandidatDashboard() {
                                         )}
                                     </div>
                                     <div className="min-w-0">
-                                    <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-accent">Accueil candidat</p>
-                                    <h1 className="text-3xl font-black leading-tight text-white md:text-4xl">Bonjour, {firstName}</h1>
+                                    <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-accent">{t('candidate.dashboard.kicker')}</p>
+                                    <h1 className="text-3xl font-black leading-tight text-white md:text-4xl">{t('candidate.dashboard.titlePrefix', { name: firstName })}</h1>
                                     <p className="mt-3 max-w-2xl text-base leading-relaxed text-white/62">
                                         {completion.isComplete
-                                            ? 'Voici les offres et candidatures les plus importantes pour vous.'
-                                            : 'Complétez votre profil pour recevoir de meilleures offres.'}
+                                            ? t('candidate.dashboard.subtitleComplete')
+                                            : t('candidate.dashboard.subtitleIncomplete')}
                                     </p>
                                     </div>
                                 </div>
@@ -726,7 +743,7 @@ export default function CandidatDashboard() {
                                 <div className="rounded-2xl border border-borderGlass bg-white/5 p-4">
                                     <div className="flex items-start justify-between gap-4">
                                         <div>
-                                            <p className="text-xs font-semibold uppercase tracking-wider text-white/45">Profil</p>
+                                            <p className="text-xs font-semibold uppercase tracking-wider text-white/45">{t('candidate.dashboard.profile')}</p>
                                             <p className="mt-1 text-sm font-semibold text-white">{missingText}</p>
                                         </div>
                                         <span className="text-2xl font-black text-white">{completion.percent}%</span>
@@ -756,23 +773,23 @@ export default function CandidatDashboard() {
                                 >
                                     <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                                         <div>
-                                            <h2 className="text-xl font-bold text-white">Offres recommandées pour vous</h2>
+                                            <h2 className="text-xl font-bold text-white">{t('candidate.dashboard.recommended')}</h2>
                                             <p className="mt-1 text-sm text-white/55">
-                                                Basées sur votre ville, votre poste recherché et les offres actives.
+                                                {t('candidate.dashboard.recommendedSubtitle')}
                                             </p>
                                         </div>
                                         <Link
                                             to="/jobs"
                                             className="inline-flex w-fit items-center gap-2 rounded-full border border-borderGlass bg-white/5 px-4 py-2 text-sm font-semibold text-white/75 transition-colors hover:border-accent/40 hover:text-white"
                                         >
-                                            Voir toutes
+                                            {t('candidate.dashboard.viewAll')}
                                             <ArrowRight size={14} />
                                         </Link>
                                     </div>
 
                                     {!completion.hasCoreProfile ? (
                                         <div className="rounded-2xl border border-dashed border-borderGlass bg-white/5 px-5 py-9 text-center">
-                                            <p className="font-semibold text-white">Complétez votre profil pour recevoir des recommandations adaptées.</p>
+                                            <p className="font-semibold text-white">{t('candidate.dashboard.subtitleIncomplete')}</p>
                                             <Link
                                                 to="/candidat/profile"
                                                 className="mt-4 inline-flex items-center justify-center rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent/90"
@@ -782,21 +799,21 @@ export default function CandidatDashboard() {
                                         </div>
                                     ) : recommendedOffers.length === 0 ? (
                                         <div className="rounded-2xl border border-dashed border-borderGlass bg-white/5 px-5 py-9 text-center">
-                                            <p className="font-semibold text-white">Aucune recommandation disponible pour le moment.</p>
+                                            <p className="font-semibold text-white">{t('jobs.emptyTitle')}</p>
                                             <p className="mx-auto mt-2 max-w-md text-sm text-white/55">
-                                                Explorez toutes les offres ou modifiez votre ville et le poste recherché.
+                                                {t('jobs.emptyText')}
                                             </p>
                                             <Link
                                                 to="/jobs"
                                                 className="mt-4 inline-flex items-center justify-center rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent/90"
                                             >
-                                                Voir les offres
+                                                {t('common.viewOffers')}
                                             </Link>
                                         </div>
                                     ) : (
                                         <div className="grid gap-3">
                                             {recommendedOffers.map((offer) => (
-                                                <RecommendedJobCard key={offer.id} offer={offer} profile={completion.profile} />
+                                                <RecommendedJobCard key={offer.id} offer={offer} profile={completion.profile} t={t} />
                                             ))}
                                         </div>
                                     )}
@@ -808,14 +825,14 @@ export default function CandidatDashboard() {
                                 >
                                     <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                                         <div>
-                                            <h2 className="text-xl font-bold text-white">Offres sauvegardees</h2>
-                                            <p className="mt-1 text-sm text-white/55">Vos favoris pour revenir rapidement aux opportunites interessantes.</p>
+                                            <h2 className="text-xl font-bold text-white">{t('candidate.dashboard.saved')}</h2>
+                                            <p className="mt-1 text-sm text-white/55">{t('candidate.dashboard.savedSubtitle')}</p>
                                         </div>
                                         <Link
                                             to="/jobs"
                                             className="inline-flex w-fit items-center gap-2 rounded-full border border-borderGlass bg-white/5 px-4 py-2 text-sm font-semibold text-white/75 transition-colors hover:border-accent/40 hover:text-white"
                                         >
-                                            Explorer
+                                            {t('candidate.dashboard.explore')}
                                             <ArrowRight size={14} />
                                         </Link>
                                     </div>
@@ -823,15 +840,15 @@ export default function CandidatDashboard() {
                                     {savedOffersPreview.length === 0 ? (
                                         <div className="rounded-2xl border border-dashed border-borderGlass bg-white/5 px-5 py-8 text-center">
                                             <BookmarkCheck size={22} className="mx-auto mb-3 text-accent" />
-                                            <p className="font-semibold text-white">Aucune offre sauvegardee.</p>
+                                            <p className="font-semibold text-white">{t('candidate.dashboard.noSaved')}</p>
                                             <p className="mx-auto mt-2 max-w-md text-sm text-white/55">
-                                                Sauvegardez les offres qui vous interessent depuis la liste des offres.
+                                                {t('candidate.dashboard.noSavedText')}
                                             </p>
                                         </div>
                                     ) : (
                                         <div className="grid gap-3">
                                             {savedOffersPreview.map((offer) => (
-                                                <RecommendedJobCard key={offer.id} offer={offer} profile={completion.profile} />
+                                                <RecommendedJobCard key={offer.id} offer={offer} profile={completion.profile} t={t} />
                                             ))}
                                         </div>
                                     )}
@@ -843,26 +860,26 @@ export default function CandidatDashboard() {
                                 >
                                     <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                                         <div>
-                                            <h2 className="text-xl font-bold text-white">Mes candidatures récentes</h2>
-                                            <p className="mt-1 text-sm text-white/55">Statut, quiz et accès rapide aux offres déjà envoyées.</p>
+                                            <h2 className="text-xl font-bold text-white">{t('candidate.dashboard.recentApplications')}</h2>
+                                            <p className="mt-1 text-sm text-white/55">{t('candidate.dashboard.recentApplicationsSubtitle')}</p>
                                         </div>
                                         <Link
                                             to="/jobs"
                                             className="inline-flex w-fit items-center gap-2 rounded-full border border-borderGlass bg-white/5 px-4 py-2 text-sm font-semibold text-white/75 transition-colors hover:border-accent/40 hover:text-white"
                                         >
-                                            Trouver une offre
+                                            {t('candidate.dashboard.findJob')}
                                             <ArrowRight size={14} />
                                         </Link>
                                     </div>
 
                                     {recentApplications.length === 0 ? (
                                         <div className="rounded-2xl border border-dashed border-borderGlass bg-white/5 px-5 py-9 text-center">
-                                            <p className="font-semibold text-white">Vous n’avez pas encore postulé.</p>
+                                            <p className="font-semibold text-white">{t('candidate.dashboard.noApplications')}</p>
                                             <Link
                                                 to="/jobs"
                                                 className="mt-4 inline-flex items-center justify-center rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent/90"
                                             >
-                                                Voir les offres
+                                                {t('common.viewOffers')}
                                             </Link>
                                         </div>
                                     ) : (
@@ -870,12 +887,12 @@ export default function CandidatDashboard() {
                                             <table className="min-w-full text-left text-sm">
                                                 <thead>
                                                     <tr className="border-b border-borderGlass text-xs uppercase tracking-wider text-white/45">
-                                                        <th className="px-3 py-3 font-semibold">Offre</th>
-                                                        <th className="px-3 py-3 font-semibold">Ville</th>
-                                                        <th className="px-3 py-3 font-semibold">Statut</th>
-                                                        <th className="px-3 py-3 font-semibold">Score quiz</th>
-                                                        <th className="px-3 py-3 font-semibold">Date</th>
-                                                        <th className="px-3 py-3 font-semibold">Action</th>
+                                                        <th className="px-3 py-3 font-semibold">{t('common.offer')}</th>
+                                                        <th className="px-3 py-3 font-semibold">{t('common.city')}</th>
+                                                        <th className="px-3 py-3 font-semibold">{t('common.status')}</th>
+                                                        <th className="px-3 py-3 font-semibold">{t('common.scoreQuiz')}</th>
+                                                        <th className="px-3 py-3 font-semibold">{t('common.date')}</th>
+                                                        <th className="px-3 py-3 font-semibold">{t('common.action')}</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -887,9 +904,9 @@ export default function CandidatDashboard() {
                                                         return (
                                                             <tr key={application.id} className="border-b border-white/5 align-top text-white/76 last:border-b-0">
                                                                 <td className="px-3 py-4">
-                                                                    <p className="font-semibold text-white">{offer?.titre_poste || 'Offre'}</p>
+                                                                    <p className="font-semibold text-white">{offer?.titre_poste || t('common.offer')}</p>
                                                                     <p className="mt-1 text-xs text-white/45">{getEstablishmentName(offer)}</p>
-                                                                    <ApplicationTimeline application={application} offer={offer} />
+                                                                    <ApplicationTimeline application={application} offer={offer} t={t} />
                                                                 </td>
                                                                 <td className="px-3 py-4">{offer?.ville || '-'}</td>
                                                                 <td className="px-3 py-4">
@@ -898,7 +915,7 @@ export default function CandidatDashboard() {
                                                                             statusBadgeClasses[application.status] || 'bg-white/10 text-white/80 border-white/25'
                                                                         }`}
                                                                     >
-                                                                        {toReadableStatus(application.status)}
+                                                                        {toReadableStatus(application.status, t)}
                                                                     </span>
                                                                 </td>
                                                                 <td className="px-3 py-4 font-semibold text-white">
@@ -921,7 +938,7 @@ export default function CandidatDashboard() {
                                                                                 to={`/jobs/${offerId}`}
                                                                                 className="inline-flex items-center rounded-full border border-borderGlass bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/75 transition-colors hover:border-accent/40 hover:text-white"
                                                                             >
-                                                                                Voir offre
+                                                                                {t('candidate.dashboard.viewJob')}
                                                                             </Link>
                                                                         )}
                                                                         {application.status === 'acceptee' && (
@@ -931,7 +948,7 @@ export default function CandidatDashboard() {
                                                                                 className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/20"
                                                                             >
                                                                                 <MessageCircle size={13} />
-                                                                                Discussion
+                                                                                {t('candidate.dashboard.discussion')}
                                                                             </button>
                                                                         )}
                                                                     </div>
@@ -953,15 +970,15 @@ export default function CandidatDashboard() {
                                 >
                                     <div className="mb-4 flex items-center justify-between gap-4">
                                         <div>
-                                            <p className="text-xs font-semibold uppercase tracking-wider text-accent">Notifications</p>
-                                            <h2 className="mt-1 text-xl font-bold text-white">A suivre</h2>
+                                            <p className="text-xs font-semibold uppercase tracking-wider text-accent">{t('candidate.dashboard.notifications')}</p>
+                                            <h2 className="mt-1 text-xl font-bold text-white">{t('candidate.dashboard.toFollow')}</h2>
                                         </div>
                                         <Bell size={20} className="text-white/45" />
                                     </div>
 
                                     {notifications.length === 0 ? (
                                         <p className="rounded-2xl border border-borderGlass bg-white/5 px-4 py-3 text-sm text-white/58">
-                                            Aucune alerte importante pour le moment.
+                                            {t('candidate.dashboard.noAlerts')}
                                         </p>
                                     ) : (
                                         <div className="space-y-2.5">
@@ -979,7 +996,7 @@ export default function CandidatDashboard() {
                                     variants={itemVariants}
                                     className="rounded-3xl border border-borderGlass bg-surface p-5 shadow-[0_18px_55px_rgba(0,0,0,0.12)]"
                                 >
-                                    <p className="text-xs font-semibold uppercase tracking-wider text-accent">Prochaine action</p>
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-accent">{t('candidate.dashboard.nextAction')}</p>
                                     <h2 className="mt-2 text-xl font-bold text-white">{nextAction.title}</h2>
                                     <p className="mt-2 text-sm leading-relaxed text-white/62">{nextAction.description}</p>
                                     <Link
@@ -997,17 +1014,17 @@ export default function CandidatDashboard() {
                                 >
                                     <div className="mb-4 flex items-center justify-between gap-4">
                                         <div>
-                                            <p className="text-xs font-semibold uppercase tracking-wider text-accent">Résumé</p>
-                                            <h2 className="mt-1 text-xl font-bold text-white">Candidatures</h2>
+                                            <p className="text-xs font-semibold uppercase tracking-wider text-accent">{t('candidate.dashboard.summary')}</p>
+                                            <h2 className="mt-1 text-xl font-bold text-white">{t('candidate.dashboard.applications')}</h2>
                                         </div>
                                         <FileText size={20} className="text-white/45" />
                                     </div>
 
                                     <div className="space-y-2.5">
-                                        <SummaryRow label="Candidatures envoyées" value={stats.sent} />
-                                        <SummaryRow label="En attente" value={stats.pending} tone="pending" />
-                                        <SummaryRow label="Acceptées" value={stats.accepted} tone="accepted" />
-                                        <SummaryRow label="Refusées" value={stats.rejected} tone="rejected" />
+                                        <SummaryRow label={t('candidate.dashboard.sent')} value={stats.sent} />
+                                        <SummaryRow label={t('candidate.dashboard.pending')} value={stats.pending} tone="pending" />
+                                        <SummaryRow label={t('candidate.dashboard.accepted')} value={stats.accepted} tone="accepted" />
+                                        <SummaryRow label={t('candidate.dashboard.rejected')} value={stats.rejected} tone="rejected" />
                                     </div>
                                 </motion.section>
 
@@ -1017,21 +1034,21 @@ export default function CandidatDashboard() {
                                 >
                                     <p className="flex items-center gap-2 text-sm font-semibold text-white">
                                         <CheckCircle2 size={16} className="text-accent" />
-                                        Profil utilisé pour postuler
+                                        {t('candidate.dashboard.profileUsed')}
                                     </p>
                                     <div className="mt-4 space-y-3 text-sm">
                                         <div className="flex items-center justify-between gap-3">
-                                            <span className="text-white/50">Ville</span>
+                                            <span className="text-white/50">{t('common.city')}</span>
                                             <span className="font-semibold text-white">{completion.profile?.ville || '-'}</span>
                                         </div>
                                         <div className="flex items-center justify-between gap-3">
-                                            <span className="text-white/50">Poste</span>
+                                            <span className="text-white/50">{t('candidate.dashboard.position')}</span>
                                             <span className="text-right font-semibold text-white">{completion.profile?.poste_recherche || '-'}</span>
                                         </div>
                                         <div className="flex items-center justify-between gap-3">
-                                            <span className="text-white/50">CV</span>
+                                            <span className="text-white/50">{t('common.cv')}</span>
                                             <span className={completion.hasCv ? 'font-semibold text-emerald-300' : 'font-semibold text-amber-300'}>
-                                                {completion.hasCv ? 'Ajouté' : 'Manquant'}
+                                                {completion.hasCv ? t('common.added') : t('common.missing')}
                                             </span>
                                         </div>
                                     </div>

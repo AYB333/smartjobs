@@ -11,7 +11,9 @@ import {
     X,
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
+import SmartSelect from '../components/SmartSelect';
 import api from '../api/axios';
+import { useI18n } from '../context/useAppExperience';
 
 function extractEntity(payload) {
     return payload?.data ?? payload ?? null;
@@ -48,6 +50,7 @@ const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_OFFER_IMAGE_SIZE = 2 * 1024 * 1024;
 
 export default function RecruteurOfferForm() {
+    const { t } = useI18n();
     const navigate = useNavigate();
     const { id } = useParams();
     const isEditMode = Boolean(id);
@@ -324,10 +327,10 @@ export default function RecruteurOfferForm() {
             <main className="container mx-auto px-6 pt-32 pb-16">
                 <section className="mb-8">
                     <h1 className="text-3xl md:text-4xl font-black text-white">
-                        {isEditMode ? 'Modifier une offre' : 'Creer une offre'}
+                        {isEditMode ? t('offerForm.editTitle') : t('offerForm.createTitle')}
                     </h1>
                     <p className="mt-2 text-white/60">
-                        {isEditMode ? 'Mettez a jour les informations principales de l offre.' : 'Publication en 2 etapes: details puis quiz optionnel.'}
+                        {isEditMode ? t('offerForm.editSubtitle') : t('offerForm.createSubtitle')}
                     </p>
                 </section>
 
@@ -372,17 +375,17 @@ export default function RecruteurOfferForm() {
                     {loadingOffer ? (
                         <div className="py-12 text-center">
                             <div className="mx-auto mb-4 h-9 w-9 animate-spin rounded-full border-2 border-white/20 border-t-accent" />
-                            <p className="text-white/60">Chargement de l'offre...</p>
+                            <p className="text-white/60">{t('offerForm.loading')}</p>
                         </div>
                     ) : (
                     <>
                     <div className="mb-6 rounded-2xl border border-borderGlass bg-obsidian/45 p-4">
                         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                             <div>
-                                <p className="text-xs font-semibold uppercase tracking-wider text-accent">Qualite de l'offre</p>
-                                <h2 className="mt-1 text-xl font-bold text-white">{qualityScore}% complet</h2>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-accent">{t('offerForm.quality')}</p>
+                            <h2 className="mt-1 text-xl font-bold text-white">{t('offerForm.complete', { score: qualityScore })}</h2>
                                 <p className="mt-1 text-sm text-white/55">
-                                    Une offre complete attire plus de candidats et facilite le tri.
+                                    {t('offerForm.qualityHelp')}
                                 </p>
                             </div>
                             <div className="min-w-44">
@@ -412,7 +415,7 @@ export default function RecruteurOfferForm() {
                         <div className="space-y-5">
                             <div className="grid gap-5 md:grid-cols-2">
                                 <div>
-                                    <label className="mb-2 block text-xs uppercase tracking-wider text-white/55">Titre du poste</label>
+                                    <label className="mb-2 block text-xs uppercase tracking-wider text-white/55">{t('offerForm.title')}</label>
                                     <input
                                         value={offerForm.titre_poste}
                                         onChange={(event) => handleOfferField('titre_poste', event.target.value)}
@@ -422,7 +425,7 @@ export default function RecruteurOfferForm() {
                                 </div>
 
                                 <div>
-                                    <label className="mb-2 block text-xs uppercase tracking-wider text-white/55">Ville</label>
+                                    <label className="mb-2 block text-xs uppercase tracking-wider text-white/55">{t('common.city')}</label>
                                     <input
                                         value={offerForm.ville}
                                         onChange={(event) => handleOfferField('ville', event.target.value)}
@@ -433,7 +436,7 @@ export default function RecruteurOfferForm() {
                             </div>
 
                             <div>
-                                <label className="mb-2 block text-xs uppercase tracking-wider text-white/55">Description</label>
+                                <label className="mb-2 block text-xs uppercase tracking-wider text-white/55">{t('offerForm.description')}</label>
                                 <textarea
                                     rows={6}
                                     value={offerForm.description}
@@ -455,18 +458,18 @@ export default function RecruteurOfferForm() {
                                         ) : (
                                             <div className="flex flex-col items-center gap-2 text-white/45">
                                                 <ImagePlus size={24} className="text-accent" />
-                                                <span className="text-xs font-medium">Aucune photo</span>
+                                                <span className="text-xs font-medium">{t('offerForm.noPhoto')}</span>
                                             </div>
                                         )}
                                     </div>
 
                                     <div className="flex-1">
-                                        <label className="mb-2 block text-xs uppercase tracking-wider text-white/55">Image de l'offre</label>
+                                        <label className="mb-2 block text-xs uppercase tracking-wider text-white/55">{t('offerForm.image')}</label>
                                         <p className="text-sm text-white/65">
-                                            Photo optionnelle de l'établissement ou du lieu de travail.
+                                            {t('offerForm.imageHelp')}
                                         </p>
                                         <p className="mt-1 text-xs text-white/45">
-                                            Le type d'établissement permet d'afficher une image par défaut si aucune photo n'est ajoutée.
+                                            {t('offerForm.defaultImageHelp')}
                                         </p>
                                         <p className="mt-1 text-xs text-white/45">JPG, PNG ou WEBP - 2MB max.</p>
 
@@ -476,7 +479,7 @@ export default function RecruteurOfferForm() {
                                                 className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-borderGlass bg-white/5 px-4 py-2 text-sm font-semibold text-white/80 transition-colors hover:border-accent/50 hover:text-white"
                                             >
                                                 <ImagePlus size={15} className="text-accent" />
-                                                Choisir une photo
+                                                {t('offerForm.choosePhoto')}
                                             </label>
                                             <input
                                                 key={imageInputKey}
@@ -501,7 +504,7 @@ export default function RecruteurOfferForm() {
 
                                         {imageFile && (
                                             <p className="mt-3 truncate text-xs text-white/55">
-                                                Selection: {imageFile.name}
+                                                {t('offerForm.selection', { name: imageFile.name })}
                                             </p>
                                         )}
                                     </div>
@@ -510,43 +513,36 @@ export default function RecruteurOfferForm() {
 
                             <div className="grid gap-5 md:grid-cols-3">
                                 <div>
-                                    <label className="mb-2 block text-xs uppercase tracking-wider text-white/55">Salaire (MAD)</label>
+                                    <label className="mb-2 block text-xs uppercase tracking-wider text-white/55">{t('offerForm.salaryMad')}</label>
                                     <input
                                         type="number"
                                         min="0"
                                         value={offerForm.salaire}
                                         onChange={(event) => handleOfferField('salaire', event.target.value)}
                                         className="w-full rounded-xl border border-borderGlass bg-obsidian/65 px-4 py-3 text-white focus:border-accent/50 focus:outline-none"
-                                        placeholder="Optionnel"
+                                        placeholder={t('common.optional')}
                                     />
                                 </div>
 
-                                <div>
-                                    <label className="mb-2 block text-xs uppercase tracking-wider text-white/55">Type de contrat</label>
-                                    <select
-                                        value={offerForm.type_contrat}
-                                        onChange={(event) => handleOfferField('type_contrat', event.target.value)}
-                                        className="w-full rounded-xl border border-borderGlass bg-obsidian/65 px-4 py-3 text-white focus:border-accent/50 focus:outline-none"
-                                    >
-                                        <option value="CDI">CDI</option>
-                                        <option value="CDD">CDD</option>
-                                        <option value="Extra">Extra</option>
-                                        <option value="Saisonnier">Saisonnier</option>
-                                    </select>
-                                </div>
+                                <SmartSelect
+                                    label={t('common.contractType')}
+                                    value={offerForm.type_contrat}
+                                    onChange={(nextValue) => handleOfferField('type_contrat', nextValue)}
+                                    options={['CDI', 'CDD', 'Extra', 'Saisonnier']}
+                                    buttonClassName="rounded-xl bg-obsidian/65"
+                                />
 
-                                <div>
-                                    <label className="mb-2 block text-xs uppercase tracking-wider text-white/55">Duree de validite</label>
-                                    <select
-                                        value={offerForm.duree_validite}
-                                        onChange={(event) => handleOfferField('duree_validite', event.target.value)}
-                                        className="w-full rounded-xl border border-borderGlass bg-obsidian/65 px-4 py-3 text-white focus:border-accent/50 focus:outline-none"
-                                    >
-                                        <option value="7">7 jours</option>
-                                        <option value="15">15 jours</option>
-                                        <option value="30">30 jours</option>
-                                    </select>
-                                </div>
+                                <SmartSelect
+                                    label="Duree de validite"
+                                    value={offerForm.duree_validite}
+                                    onChange={(nextValue) => handleOfferField('duree_validite', nextValue)}
+                                    options={[
+                                        { value: '7', label: '7 jours' },
+                                        { value: '15', label: '15 jours' },
+                                        { value: '30', label: '30 jours' },
+                                    ]}
+                                    buttonClassName="rounded-xl bg-obsidian/65"
+                                />
                             </div>
 
                             <div className="pt-2">
@@ -557,7 +553,7 @@ export default function RecruteurOfferForm() {
                                         disabled={submitting}
                                         className="rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white hover:bg-accent/90 transition-colors disabled:opacity-70"
                                     >
-                                        {submitting ? 'Enregistrement...' : "Enregistrer l'offre"}
+                                        {submitting ? t('common.saving') : t('offerForm.saveOffer')}
                                     </button>
                                 ) : (
                                     <button
@@ -565,7 +561,7 @@ export default function RecruteurOfferForm() {
                                         onClick={goToStepTwo}
                                         className="rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white hover:bg-accent/90 transition-colors"
                                     >
-                                        Continuer vers le quiz
+                                        {t('offerForm.continueQuiz')}
                                     </button>
                                 )}
                             </div>
@@ -574,7 +570,7 @@ export default function RecruteurOfferForm() {
                         <div className="space-y-6">
                             <div className="flex items-start justify-between gap-4 rounded-2xl border border-borderGlass bg-obsidian/55 p-4">
                                 <div>
-                                    <h3 className="text-lg font-bold text-white">Quiz QCM (optionnel)</h3>
+                                    <h3 className="text-lg font-bold text-white">{t('offerForm.quizTitle')}</h3>
                                     <p className="mt-1 text-sm text-white/60">
                                         Ajoutez un test de preselection pour qualifier les candidatures.
                                     </p>
@@ -588,7 +584,7 @@ export default function RecruteurOfferForm() {
                                             : 'bg-white/5 text-white/70 border border-borderGlass'
                                     }`}
                                 >
-                                    {withQuiz ? 'Quiz active' : 'Activer quiz'}
+                                    {withQuiz ? t('offerForm.quizEnabled') : t('offerForm.enableQuiz')}
                                 </button>
                             </div>
 
@@ -596,7 +592,7 @@ export default function RecruteurOfferForm() {
                                 <>
                                     <div className="grid gap-5 md:grid-cols-2">
                                         <div>
-                                            <label className="mb-2 block text-xs uppercase tracking-wider text-white/55">Titre du quiz</label>
+                                            <label className="mb-2 block text-xs uppercase tracking-wider text-white/55">{t('offerForm.quizName')}</label>
                                             <input
                                                 value={quizForm.titre}
                                                 onChange={(event) => handleQuizField('titre', event.target.value)}
@@ -621,14 +617,14 @@ export default function RecruteurOfferForm() {
                                         {questions.map((question, index) => (
                                             <div key={question.id} className="rounded-2xl border border-borderGlass bg-obsidian/55 p-4">
                                                 <div className="mb-3 flex items-center justify-between gap-3">
-                                                    <p className="text-sm font-semibold text-white">Question {index + 1}</p>
+                                                    <p className="text-sm font-semibold text-white">{t('offerForm.question', { number: index + 1 })}</p>
                                                     <button
                                                         type="button"
                                                         onClick={() => removeQuestion(question.id)}
                                                         className="inline-flex items-center gap-1 rounded-full border border-borderGlass bg-white/5 px-3 py-1 text-xs text-white/70 hover:text-white"
                                                     >
                                                         <Trash2 size={13} />
-                                                        Supprimer
+                                                        {t('offerForm.delete')}
                                                     </button>
                                                 </div>
 
@@ -637,7 +633,7 @@ export default function RecruteurOfferForm() {
                                                         value={question.question_text}
                                                         onChange={(event) => handleQuestionField(question.id, 'question_text', event.target.value)}
                                                         className="w-full rounded-xl border border-borderGlass bg-obsidian/65 px-4 py-3 text-white focus:border-accent/50 focus:outline-none"
-                                                        placeholder="Enonce de la question"
+                                                        placeholder={t('offerForm.questionPlaceholder')}
                                                     />
 
                                                     <div className="grid gap-3 md:grid-cols-2">
@@ -667,19 +663,14 @@ export default function RecruteurOfferForm() {
                                                         />
                                                     </div>
 
-                                                    <div>
-                                                        <label className="mb-2 block text-xs uppercase tracking-wider text-white/55">Bonne reponse</label>
-                                                        <select
-                                                            value={question.correct_key}
-                                                            onChange={(event) => handleQuestionField(question.id, 'correct_key', event.target.value)}
-                                                            className="w-full rounded-xl border border-borderGlass bg-obsidian/65 px-4 py-3 text-white focus:border-accent/50 focus:outline-none md:w-52"
-                                                        >
-                                                            <option value="A">A</option>
-                                                            <option value="B">B</option>
-                                                            <option value="C">C</option>
-                                                            <option value="D">D</option>
-                                                        </select>
-                                                    </div>
+                                                    <SmartSelect
+                                                        label="Bonne reponse"
+                                                        value={question.correct_key}
+                                                        onChange={(nextValue) => handleQuestionField(question.id, 'correct_key', nextValue)}
+                                                        options={['A', 'B', 'C', 'D']}
+                                                        className="md:w-52"
+                                                        buttonClassName="rounded-xl bg-obsidian/65"
+                                                    />
                                                 </div>
                                             </div>
                                         ))}
@@ -690,7 +681,7 @@ export default function RecruteurOfferForm() {
                                             className="inline-flex items-center gap-2 rounded-full border border-borderGlass bg-white/5 px-4 py-2 text-sm text-white/80 hover:text-white hover:border-accent/50"
                                         >
                                             <Plus size={15} />
-                                            Ajouter une question
+                                            {t('offerForm.addQuestion')}
                                         </button>
                                     </div>
                                 </>
@@ -702,7 +693,7 @@ export default function RecruteurOfferForm() {
                                     onClick={() => setStep(1)}
                                     className="rounded-full border border-borderGlass bg-white/5 px-5 py-2.5 text-sm font-medium text-white/80 hover:text-white hover:border-accent/50"
                                 >
-                                    Retour
+                                    {t('quiz.previous')}
                                 </button>
                                 <button
                                     type="button"
@@ -711,7 +702,7 @@ export default function RecruteurOfferForm() {
                                     className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-2.5 text-sm font-semibold text-white hover:bg-accent/90 disabled:opacity-70"
                                 >
                                     <WandSparkles size={15} />
-                                    {submitting ? 'Publication en cours...' : "Publier l'offre"}
+                                    {submitting ? t('offerForm.publishing') : t('offerForm.publish')}
                                 </button>
                             </div>
                         </div>

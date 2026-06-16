@@ -31,7 +31,7 @@ function buildActions(role, t) {
         return [
             ...publicActions,
             { label: t('command.recruteurDashboard'), path: '/recruteur/dashboard', icon: LayoutDashboard },
-            { label: 'Profil recruteur', path: '/recruteur/profile', icon: UserRound },
+            { label: t('command.recruiterProfile'), path: '/recruteur/profile', icon: UserRound },
             { label: t('command.createOffer'), path: '/recruteur/offer/create', icon: Plus },
             { label: t('command.recruteurApplications'), path: '/recruteur/candidatures', icon: UserRound },
         ];
@@ -129,7 +129,7 @@ export default function CommandPalette({ open, onClose }) {
                                     type="button"
                                     onClick={closePalette}
                                     className="rounded-full border border-borderGlass bg-white/5 p-2 text-white/70 transition-colors hover:border-accent/50 hover:text-white"
-                                    aria-label="Fermer"
+                                    aria-label={t('common.close')}
                                 >
                                     <X size={16} />
                                 </button>

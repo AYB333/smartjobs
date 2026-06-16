@@ -16,6 +16,15 @@ const bgImages = [
     'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2000&q=80',
 ];
 
+const categoryTags = [
+    { value: 'Serveur', labelKey: 'home.category.server' },
+    { value: 'Cuisinier', labelKey: 'home.category.cook' },
+    { value: 'Barista', labelKey: 'home.category.barista' },
+    { value: 'Receptionniste', labelKey: 'home.category.receptionist' },
+    { value: 'Chef de rang', labelKey: 'home.category.headWaiter' },
+    { value: 'Gerant', labelKey: 'home.category.manager' },
+];
+
 function extractOffers(payload) {
     const source = payload?.data;
 
@@ -108,14 +117,14 @@ export default function Home() {
                 const offers = extractOffers(response?.data).slice(0, 6);
                 setFeaturedOffers(offers);
             } catch {
-                setOffersError("Impossible de charger les offres a la une.");
+                setOffersError(t('home.featured.error'));
             } finally {
                 setOffersLoading(false);
             }
         };
 
         fetchFeaturedOffers();
-    }, []);
+    }, [t]);
 
     const handleSearchSubmit = (event) => {
         event.preventDefault();
@@ -151,13 +160,13 @@ export default function Home() {
 
                 <div className="relative z-20 container mx-auto px-6 text-center flex flex-col items-center">
                     <div className="mb-8 flex max-w-3xl flex-wrap justify-center gap-2 opacity-0 animate-[fadeIn_1s_ease-out_0.35s_forwards]">
-                        {['Serveur', 'Cuisinier', 'Barista', 'Receptionniste', 'Chef de rang', 'Gerant'].map((tag) => (
+                        {categoryTags.map((tag) => (
                             <Link
-                                key={tag}
-                                to={buildJobsPath({ search: tag })}
+                                key={tag.value}
+                                to={buildJobsPath({ search: tag.value })}
                                 className="rounded-full border border-borderGlass bg-surface px-4 py-2 text-xs font-semibold text-white/80 shadow-[0_0_15px_rgba(232,101,26,0.1)] backdrop-blur-md transition-colors hover:border-accent/50 hover:text-white sm:text-sm"
                             >
-                                {tag}
+                                {t(tag.labelKey)}
                             </Link>
                         ))}
                     </div>
@@ -243,15 +252,15 @@ export default function Home() {
                 <div className="container mx-auto grid gap-4 px-6 py-10 text-center md:grid-cols-3">
                     <div className="home-feature-box rounded-2xl border border-borderGlass bg-white/5 px-5 py-5">
                         <span className="home-feature-heading text-sm font-bold uppercase tracking-wider text-white">{t('home.stats.offers')}</span>
-                        <p className="mt-2 text-sm leading-relaxed text-white/60">Des opportunites recentrees sur l'hotellerie, la restauration et le service.</p>
+                        <p className="mt-2 text-sm leading-relaxed text-white/60">{t('home.feature.offers.body')}</p>
                     </div>
                     <div className="home-feature-box rounded-2xl border border-borderGlass bg-white/5 px-5 py-5">
                         <span className="home-feature-heading text-sm font-bold uppercase tracking-wider text-white">{t('home.stats.establishments')}</span>
-                        <p className="mt-2 text-sm leading-relaxed text-white/60">CV, experience et objectifs visibles dans un parcours candidat guide.</p>
+                        <p className="mt-2 text-sm leading-relaxed text-white/60">{t('home.feature.profiles.body')}</p>
                     </div>
                     <div className="home-feature-box rounded-2xl border border-borderGlass bg-white/5 px-5 py-5">
                         <span className="home-feature-heading text-sm font-bold uppercase tracking-wider text-white">{t('home.stats.candidates')}</span>
-                        <p className="mt-2 text-sm leading-relaxed text-white/60">Quiz de preselection pour aider les recruteurs a qualifier plus vite.</p>
+                        <p className="mt-2 text-sm leading-relaxed text-white/60">{t('home.feature.quizzes.body')}</p>
                     </div>
                 </div>
             </section>
@@ -323,15 +332,15 @@ export default function Home() {
                                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/5">
                                     <Search className="h-8 w-8 text-white/30" />
                                 </div>
-                                <h3 className="mb-2 text-xl font-semibold text-white">Aucune offre active pour le moment</h3>
+                                <h3 className="mb-2 text-xl font-semibold text-white">{t('home.featured.emptyTitle')}</h3>
                                 <p className="mb-6 text-white/50">
-                                    Ajoutez le seed demo ou creez une offre recruteur pour alimenter cette vitrine.
+                                    {t('home.featured.emptyBody')}
                                 </p>
                                 <Link
                                     to="/jobs"
                                     className="inline-flex rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white hover:bg-accent/90 transition-colors"
                                 >
-                                    Parcourir les offres
+                                    {t('home.featured.emptyCta')}
                                 </Link>
                             </div>
                     )}

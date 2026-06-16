@@ -5,6 +5,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import JobCard from '../components/JobCard';
+import SmartSelect from '../components/SmartSelect';
 import api from '../api/axios';
 import { useToast } from '../context/useAppExperience';
 import { extractSavedOfferIds } from '../utils/savedJobs';
@@ -13,13 +14,6 @@ const filterVariants = {
     open: { opacity: 1, height: 'auto', marginTop: 16 },
     collapsed: { opacity: 0, height: 0, marginTop: 0 },
 };
-
-const sortOptions = [
-    { value: 'recent', label: 'Plus récentes' },
-    { value: 'salary_high', label: 'Salaire élevé' },
-    { value: 'expires_soon', label: 'Expire bientôt' },
-    { value: 'with_quiz', label: 'Avec quiz' },
-];
 
 function extractOffers(payload) {
     const source = payload?.data;
@@ -154,7 +148,7 @@ function JobSkeletonCard({ index }) {
 export default function Jobs() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-    const { showToast } = useToast();
+    const { showToast, t } = useToast();
     const [offres, setOffres] = useState([]);
     const [savedOfferIds, setSavedOfferIds] = useState([]);
     const [savingOfferId, setSavingOfferId] = useState(null);
@@ -169,6 +163,12 @@ export default function Jobs() {
     const [filters, setFilters] = useState(() => getInitialFilters(searchParams));
     const currentUser = useMemo(() => parseStoredUser(), []);
     const isCandidate = currentUser?.role === 'candidat';
+    const sortOptions = useMemo(() => [
+        { value: 'recent', label: t('jobs.sort.recent') },
+        { value: 'salary_high', label: t('jobs.sort.salaryHigh') },
+        { value: 'expires_soon', label: t('jobs.sort.expiresSoon') },
+        { value: 'with_quiz', label: t('jobs.sort.withQuiz') },
+    ], [t]);
 
     const fetchJobs = useCallback(async () => {
         setLoading(true);
@@ -187,13 +187,13 @@ export default function Jobs() {
         } catch (requestError) {
             setError(
                 requestError?.response?.data?.message
-                || 'Erreur lors du chargement des offres.'
+                || t('jobs.errorLoad')
             );
             setOffres([]);
         } finally {
             setLoading(false);
         }
-    }, [filters]);
+    }, [filters, t]);
 
     useEffect(() => {
         const timeoutId = window.setTimeout(() => {
@@ -257,14 +257,14 @@ export default function Jobs() {
 
             showToast({
                 type: 'success',
-                title: 'Favoris',
-                message: isSaved ? 'Offre retiree des favoris.' : 'Offre sauvegardee.',
+                title: t('jobs.saved.title'),
+                message: isSaved ? t('jobs.saved.removed') : t('jobs.saved.added'),
             });
         } catch (requestError) {
             showToast({
                 type: 'error',
-                title: 'Favoris',
-                message: requestError?.response?.data?.message || "Impossible de mettre a jour l'offre sauvegardee.",
+                title: t('jobs.saved.title'),
+                message: requestError?.response?.data?.message || t('jobs.saved.error'),
             });
         } finally {
             setSavingOfferId(null);
@@ -289,27 +289,27 @@ export default function Jobs() {
         const chips = [];
 
         if (filters.search.trim()) {
-            chips.push({ key: 'search', label: `Recherche: ${filters.search.trim()}` });
+            chips.push({ key: 'search', label: `${t('jobs.filter.search')}: ${filters.search.trim()}` });
         }
 
         if (filters.ville) {
-            chips.push({ key: 'ville', label: `Ville: ${filters.ville}` });
+            chips.push({ key: 'ville', label: `${t('jobs.filter.city')}: ${filters.ville}` });
         }
 
         if (filters.type_contrat) {
-            chips.push({ key: 'type_contrat', label: `Contrat: ${filters.type_contrat}` });
+            chips.push({ key: 'type_contrat', label: `${t('jobs.filter.contract')}: ${filters.type_contrat}` });
         }
 
         if (filters.salaireMin) {
-            chips.push({ key: 'salaireMin', label: `Min: ${formatSalaryFilter(filters.salaireMin)} MAD` });
+            chips.push({ key: 'salaireMin', label: `${t('jobs.filter.min')}: ${formatSalaryFilter(filters.salaireMin)} MAD` });
         }
 
         if (filters.salaireMax) {
-            chips.push({ key: 'salaireMax', label: `Max: ${formatSalaryFilter(filters.salaireMax)} MAD` });
+            chips.push({ key: 'salaireMax', label: `${t('jobs.filter.max')}: ${formatSalaryFilter(filters.salaireMax)} MAD` });
         }
 
         return chips;
-    }, [filters]);
+    }, [filters, t]);
 
     const sortedOffers = useMemo(() => sortOffers(offres, sortOrder), [offres, sortOrder]);
     const resultCount = sortedOffers.length;
@@ -329,11 +329,11 @@ export default function Jobs() {
                     <div>
                         <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent">
                             <SlidersHorizontal size={13} />
-                            Recherche CHR
+                            {t('jobs.badge')}
                         </p>
-                        <h1 className="text-3xl font-black text-white md:text-5xl">Offres disponibles</h1>
+                        <h1 className="text-3xl font-black text-white md:text-5xl">{t('jobs.title')}</h1>
                         <p className="mt-2 text-white/60">
-                            {loading ? 'Chargement des offres...' : `${resultCount} offres trouvées`}
+                            {loading ? t('jobs.loadingCount') : t('jobs.count', { count: resultCount })}
                         </p>
                     </div>
 
@@ -343,7 +343,7 @@ export default function Jobs() {
                         className="inline-flex w-fit items-center gap-2 rounded-full border border-borderGlass bg-surface px-4 py-2.5 text-sm font-semibold text-white/85 transition-colors hover:border-accent/50 hover:text-white md:hidden"
                     >
                         <Filter size={16} />
-                        Filtres
+                        {t('common.filters')}
                         {filtersOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </button>
                 </div>
@@ -357,7 +357,7 @@ export default function Jobs() {
                             >
                                 <h2 className="flex items-center gap-2 text-xl font-bold text-white">
                                     <Filter size={20} className="text-accent" />
-                                    Filtres
+                                    {t('common.filters')}
                                 </h2>
                                 {filtersOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                             </div>
@@ -374,37 +374,37 @@ export default function Jobs() {
                                         {filtersLoading ? (
                                             <div className="py-8 text-center text-sm text-white/50">
                                                 <div className="mb-2 inline-block h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-accent" />
-                                                <p>Chargement des filtres...</p>
+                                                <p>{t('jobs.filtersLoading')}</p>
                                             </div>
                                         ) : (
                                             <>
                                                 <div className="mb-6">
-                                                    <label className="mb-3 block text-sm font-medium uppercase tracking-wider text-white/50">Ville</label>
+                                                    <label className="mb-3 block text-sm font-medium uppercase tracking-wider text-white/50">{t('common.city')}</label>
                                                     <div className="flex flex-col gap-2">
-                                                        {['Tous', ...filterData.villes].map((ville) => (
-                                                            <label key={ville} className="group flex cursor-pointer items-center gap-3">
+                                                        {[{ value: '', label: t('common.all') }, ...filterData.villes.map((ville) => ({ value: ville, label: ville }))].map((ville) => (
+                                                            <label key={ville.value || 'all'} className="group flex cursor-pointer items-center gap-3">
                                                                 <input
                                                                     type="radio"
                                                                     name="ville"
-                                                                    checked={filters.ville === ville || (ville === 'Tous' && !filters.ville)}
-                                                                    onChange={() => setFilters((prev) => ({ ...prev, ville: ville === 'Tous' ? '' : ville }))}
+                                                                    checked={filters.ville === ville.value}
+                                                                    onChange={() => setFilters((prev) => ({ ...prev, ville: ville.value }))}
                                                                     className="hidden"
                                                                 />
                                                                 <div className={`flex h-4 w-4 items-center justify-center rounded-full border transition-colors ${
-                                                                    filters.ville === ville || (ville === 'Tous' && !filters.ville)
+                                                                    filters.ville === ville.value
                                                                         ? 'border-accent'
                                                                         : 'border-white/20 group-hover:border-white/50'
                                                                 }`}>
-                                                                    {(filters.ville === ville || (ville === 'Tous' && !filters.ville)) && (
+                                                                    {filters.ville === ville.value && (
                                                                         <div className="h-2 w-2 rounded-full bg-accent" />
                                                                     )}
                                                                 </div>
                                                                 <span className={`${
-                                                                    filters.ville === ville || (ville === 'Tous' && !filters.ville)
+                                                                    filters.ville === ville.value
                                                                         ? 'text-white'
                                                                         : 'text-white/70 group-hover:text-white'
                                                                 }`}>
-                                                                    {ville}
+                                                                    {ville.label}
                                                                 </span>
                                                             </label>
                                                         ))}
@@ -412,20 +412,20 @@ export default function Jobs() {
                                                 </div>
 
                                                 <div className="mb-6">
-                                                    <label className="mb-3 block text-sm font-medium uppercase tracking-wider text-white/50">Type de contrat</label>
+                                                    <label className="mb-3 block text-sm font-medium uppercase tracking-wider text-white/50">{t('common.contractType')}</label>
                                                     <div className="flex flex-wrap gap-2">
-                                                        {['Tous', ...filterData.types_contrat].map((contrat) => (
+                                                        {[{ value: '', label: t('common.all') }, ...filterData.types_contrat.map((contrat) => ({ value: contrat, label: contrat }))].map((contrat) => (
                                                             <button
-                                                                key={contrat}
+                                                                key={contrat.value || 'all'}
                                                                 type="button"
-                                                                onClick={() => setFilters((prev) => ({ ...prev, type_contrat: contrat === 'Tous' ? '' : contrat }))}
+                                                                onClick={() => setFilters((prev) => ({ ...prev, type_contrat: contrat.value }))}
                                                                 className={`rounded-full px-4 py-2 text-sm transition-all ${
-                                                                    filters.type_contrat === contrat || (contrat === 'Tous' && !filters.type_contrat)
+                                                                    filters.type_contrat === contrat.value
                                                                         ? 'bg-accent font-medium text-white'
                                                                         : 'bg-white/5 text-white/70 hover:bg-white/10'
                                                                 }`}
                                                             >
-                                                                {contrat}
+                                                                {contrat.label}
                                                             </button>
                                                         ))}
                                                     </div>
@@ -433,12 +433,12 @@ export default function Jobs() {
 
                                                 <div>
                                                     <label className="mb-3 block text-sm font-medium uppercase tracking-wider text-white/50">
-                                                        Salaire
+                                                        {t('common.salary')}
                                                     </label>
                                                     <div className="grid gap-3">
                                                         <label className="salary-filter-field block rounded-2xl border border-borderGlass bg-obsidian/60 px-3.5 py-3 transition-colors focus-within:border-accent/60 focus-within:bg-obsidian/70">
                                                             <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-white/45">
-                                                                Salaire minimum
+                                                                {t('common.salaryMin')}
                                                             </span>
                                                             <span className="flex min-w-0 items-center gap-3">
                                                                 <input
@@ -457,7 +457,7 @@ export default function Jobs() {
 
                                                         <label className="salary-filter-field block rounded-2xl border border-borderGlass bg-obsidian/60 px-3.5 py-3 transition-colors focus-within:border-accent/60 focus-within:bg-obsidian/70">
                                                             <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-white/45">
-                                                                Salaire maximum
+                                                                {t('common.salaryMax')}
                                                             </span>
                                                             <span className="flex min-w-0 items-center gap-3">
                                                                 <input
@@ -481,7 +481,7 @@ export default function Jobs() {
                                                     onClick={resetFilters}
                                                     className="mt-6 w-full rounded-full border border-borderGlass bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/80 transition-colors hover:border-accent/50 hover:text-white"
                                                 >
-                                                    Réinitialiser les filtres
+                                                    {t('common.resetFilters')}
                                                 </button>
                                             </>
                                         )}
@@ -497,7 +497,7 @@ export default function Jobs() {
                                 <Search className="mr-3 text-white/40" />
                                 <input
                                     type="text"
-                                    placeholder="Rechercher un métier, une compétence..."
+                                    placeholder={t('jobs.searchPlaceholder')}
                                     className="w-full border-none bg-transparent text-white placeholder-white/40 focus:outline-none"
                                     value={filters.search}
                                     onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))}
@@ -525,25 +525,19 @@ export default function Jobs() {
                                         onClick={resetFilters}
                                         className="inline-flex items-center gap-2 rounded-full border border-borderGlass bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/70 transition-colors hover:border-accent/50 hover:text-white"
                                     >
-                                        Réinitialiser
+                                        {t('common.reset')}
                                     </button>
                                 )}
                             </div>
 
-                            <label className="inline-flex w-full items-center justify-between gap-3 rounded-2xl border border-borderGlass bg-surface px-4 py-3 text-sm text-white/70 lg:w-auto">
-                                Trier
-                                <select
-                                    value={sortOrder}
-                                    onChange={(event) => setSortOrder(event.target.value)}
-                                    className="bg-transparent font-semibold text-white outline-none"
-                                >
-                                    {sortOptions.map((option) => (
-                                        <option key={option.value} value={option.value} className="bg-deepNavy text-white">
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
+                            <SmartSelect
+                                label={t('common.sort')}
+                                value={sortOrder}
+                                onChange={setSortOrder}
+                                options={sortOptions}
+                                className="w-full lg:w-64"
+                                buttonClassName="bg-surface"
+                            />
                         </div>
 
                         {error && (
@@ -576,16 +570,16 @@ export default function Jobs() {
 
                             {!loading && sortedOffers.length === 0 && !error && (
                                 <div className="col-span-full rounded-3xl border border-borderGlass bg-surface px-6 py-20 text-center">
-                                    <h2 className="text-2xl font-black text-white">Aucune offre trouvée</h2>
+                                    <h2 className="text-2xl font-black text-white">{t('jobs.emptyTitle')}</h2>
                                     <p className="mx-auto mt-2 max-w-md text-white/60">
-                                        Essayez de modifier vos filtres ou votre recherche.
+                                        {t('jobs.emptyText')}
                                     </p>
                                     <button
                                         type="button"
                                         onClick={resetFilters}
                                         className="mt-6 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-accent/90"
                                     >
-                                        Réinitialiser les filtres
+                                        {t('common.resetFilters')}
                                     </button>
                                 </div>
                             )}

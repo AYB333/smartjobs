@@ -49,7 +49,7 @@ export default function Auth() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const navigate = useNavigate();
-    const { showToast } = useToast();
+    const { showToast, t } = useToast();
 
     // Form state
     const [formData, setFormData] = useState({
@@ -86,7 +86,7 @@ export default function Auth() {
             localStorage.setItem('user', JSON.stringify(user));
             showToast({
                 type: 'success',
-                title: isLogin ? 'Connexion reussie' : 'Compte cree',
+                title: isLogin ? t('auth.successLogin') : t('auth.successRegister'),
                 message: `Bienvenue ${user.name || ''}`.trim(),
             });
 
@@ -106,7 +106,7 @@ export default function Auth() {
             setError(message);
             showToast({
                 type: 'error',
-                title: 'Authentification',
+                title: t('auth.errorTitle'),
                 message,
             });
         } finally {
@@ -128,7 +128,7 @@ export default function Auth() {
                     
                     <div className="auth-back-row mb-6 w-full max-w-md mx-auto">
                     <Link to="/" className="auth-back-link inline-flex w-fit items-center gap-2 rounded-full border border-borderGlass bg-surface px-3.5 py-2 text-sm font-semibold text-white/60 transition-colors hover:border-accent/40 hover:text-white">
-                        <ArrowLeft size={16} /> Retour à l’accueil
+                        <ArrowLeft size={16} /> {t('auth.backHome')}
                     </Link>
                     </div>
 
@@ -140,12 +140,10 @@ export default function Auth() {
                             transition={{ duration: 0.5 }}
                         >
                             <h1 className="auth-title text-4xl md:text-5xl font-black text-white mb-3">
-                                {isLogin ? 'Bon retour.' : 'Rejoignez l\'élite.'}
+                                {isLogin ? t('auth.loginTitle') : t('auth.registerTitle')}
                             </h1>
                             <p className="auth-subtitle text-white/50 mb-8">
-                                {isLogin 
-                                    ? 'Connectez-vous pour accéder à votre espace exclusif.' 
-                                    : 'Créez votre compte pour commencer votre nouvelle aventure.'}
+                                {isLogin ? t('auth.loginSubtitle') : t('auth.registerSubtitle')}
                             </p>
                         </motion.div>
 
@@ -168,7 +166,7 @@ export default function Auth() {
                                 {!isLogin && (
                                     <div className="space-y-5">
                                         <div>
-                                            <label className="auth-label block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Nom complet</label>
+                                            <label className="auth-label block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">{t('auth.fullName')}</label>
                                             <div className="auth-input-shell relative group">
                                                 <User className="auth-input-icon absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-accent transition-colors" size={18} />
                                                 <input 
@@ -203,7 +201,7 @@ export default function Auth() {
 
                                 <div>
                                     <div className="flex justify-between items-center mb-2">
-                                        <label className="auth-label block text-xs font-semibold text-white/50 uppercase tracking-wider">Mot de passe</label>
+                                        <label className="auth-label block text-xs font-semibold text-white/50 uppercase tracking-wider">{t('auth.password')}</label>
                                     </div>
                                     <div className="auth-input-shell relative group">
                                         <Lock className="auth-input-icon absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-accent transition-colors" size={18} />
@@ -222,7 +220,7 @@ export default function Auth() {
                                 {!isLogin && (
                                     <>
                                         <div>
-                                            <label className="auth-label block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Confirmer le mot de passe</label>
+                                            <label className="auth-label block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">{t('auth.confirmPassword')}</label>
                                             <div className="auth-input-shell relative group">
                                                 <Lock className="auth-input-icon absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-accent transition-colors" size={18} />
                                                 <input 
@@ -238,34 +236,34 @@ export default function Auth() {
                                         </div>
 
                                         <div>
-                                            <label className="auth-label block text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">Je suis un...</label>
+                                            <label className="auth-label block text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">{t('auth.roleLabel')}</label>
                                             <div className="grid grid-cols-2 gap-4">
                                                 <label className={`auth-role-card cursor-pointer flex flex-col items-center p-4 rounded-xl border transition-all duration-300 ${formData.role === 'candidat' ? 'auth-role-card-selected bg-accent/10 border-accent text-white' : 'bg-surface border-borderGlass text-white/50 hover:bg-white/5'}`}>
                                                     <User size={24} className={formData.role === 'candidat' ? 'text-accent mb-2' : 'mb-2'} />
-                                                    <span className="font-medium text-sm">Candidat</span>
+                                                    <span className="font-medium text-sm">{t('auth.candidate')}</span>
                                                     <input type="radio" name="role" value="candidat" checked={formData.role === 'candidat'} onChange={handleChange} className="hidden" />
                                                 </label>
                                                 <label className={`auth-role-card cursor-pointer flex flex-col items-center p-4 rounded-xl border transition-all duration-300 ${formData.role === 'recruteur' ? 'auth-role-card-selected bg-accent/10 border-accent text-white' : 'bg-surface border-borderGlass text-white/50 hover:bg-white/5'}`}>
                                                     <Briefcase size={24} className={formData.role === 'recruteur' ? 'text-accent mb-2' : 'mb-2'} />
-                                                    <span className="font-medium text-sm">Recruteur</span>
+                                                    <span className="font-medium text-sm">{t('auth.recruiter')}</span>
                                                     <input type="radio" name="role" value="recruteur" checked={formData.role === 'recruteur'} onChange={handleChange} className="hidden" />
                                                 </label>
                                             </div>
                                         </div>
 
                                         <div className="auth-after-box rounded-2xl border border-borderGlass bg-surface/80 p-4">
-                                            <p className="text-xs font-semibold uppercase tracking-wider text-accent">Apres creation</p>
+                                            <p className="text-xs font-semibold uppercase tracking-wider text-accent">{t('auth.afterCreation')}</p>
                                             {formData.role === 'candidat' ? (
                                                 <div className="mt-3 space-y-2 text-sm text-white/65">
-                                                    <p><span className="font-semibold text-white">1.</span> Completer profil: ville, experience et poste recherche.</p>
-                                                    <p><span className="font-semibold text-white">2.</span> Ajouter le CV PDF.</p>
-                                                    <p><span className="font-semibold text-white">3.</span> Explorer les offres, postuler, puis passer le quiz si demande.</p>
+                                                    <p><span className="font-semibold text-white">1.</span> {t('auth.candidateStep1')}</p>
+                                                    <p><span className="font-semibold text-white">2.</span> {t('auth.candidateStep2')}</p>
+                                                    <p><span className="font-semibold text-white">3.</span> {t('auth.candidateStep3')}</p>
                                                 </div>
                                             ) : (
                                                 <div className="mt-3 space-y-2 text-sm text-white/65">
-                                                    <p><span className="font-semibold text-white">1.</span> Acceder au dashboard recruteur.</p>
-                                                    <p><span className="font-semibold text-white">2.</span> Creer une offre avec details clairs.</p>
-                                                    <p><span className="font-semibold text-white">3.</span> Ajouter un quiz optionnel et suivre les candidatures.</p>
+                                                    <p><span className="font-semibold text-white">1.</span> {t('auth.recruiterStep1')}</p>
+                                                    <p><span className="font-semibold text-white">2.</span> {t('auth.recruiterStep2')}</p>
+                                                    <p><span className="font-semibold text-white">3.</span> {t('auth.recruiterStep3')}</p>
                                                 </div>
                                             )}
                                         </div>
@@ -277,7 +275,7 @@ export default function Auth() {
                                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                     ) : (
                                         <>
-                                            {isLogin ? 'Se connecter' : 'Créer mon compte'}
+                                            {isLogin ? t('auth.loginCta') : t('auth.registerCta')}
                                             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                                         </>
                                     )}
@@ -287,7 +285,7 @@ export default function Auth() {
 
                         <div className="auth-switch mt-8 pt-8 border-t border-borderGlass text-center">
                             <p className="text-white/50 text-sm">
-                                {isLogin ? "Vous n'avez pas de compte ? " : "Déjà membre ? "}
+                                {isLogin ? `${t('auth.noAccount')} ` : `${t('auth.hasAccount')} `}
                                 <button 
                                     type="button"
                                     onClick={() => {
@@ -296,7 +294,7 @@ export default function Auth() {
                                     }}
                                     className="text-white font-medium hover:text-accent transition-colors"
                                 >
-                                    {isLogin ? 'Créer un compte' : 'Se connecter'}
+                                    {isLogin ? t('auth.createAccount') : t('auth.loginCta')}
                                 </button>
                             </p>
                         </div>
@@ -333,8 +331,8 @@ export default function Auth() {
                             >
                                 <h3 className="text-3xl font-bold leading-tight mb-6">
                                     {isLogin 
-                                        ? "Bienvenue dans l'écosystème où les talents rencontrent les étoiles." 
-                                        : "Accélérez votre carrière ou trouvez la perle rare en quelques clics."}
+                                        ? t('auth.welcomeLogin')
+                                        : t('auth.welcomeRegister')}
                                 </h3>
                             </motion.div>
                         </AnimatePresence>

@@ -2,23 +2,24 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertTriangle, CheckCircle2, Info, X } from 'lucide-react';
 import AppExperienceContext from './AppExperienceContext';
+import { demoMessages } from './demoTranslations';
 
 const languages = {
     fr: {
         code: 'fr',
         dir: 'ltr',
         label: 'FR',
-        name: 'Francais',
+        name: 'Français',
         messages: {
             'nav.jobs': 'Voir les offres',
-            'nav.dashboard': 'Dashboard',
+            'nav.dashboard': 'Principale',
             'nav.myOffers': 'Mes offres',
             'nav.profile': 'Mon profil',
             'nav.login': 'Connexion',
             'nav.signup': 'Inscription',
             'nav.recruiterSpace': 'Espace recruteur',
-            'nav.logout': 'Deconnexion',
-            'nav.createOffer': 'Creer une offre',
+            'nav.logout': 'Déconnexion',
+            'nav.createOffer': 'Créer une offre',
             'nav.applications': 'Mes candidatures',
             'nav.admin': 'Gestion admin',
             'nav.menu': 'Ouvrir le menu',
@@ -27,7 +28,7 @@ const languages = {
             'toolbar.language': 'Langue',
             'toolbar.command': 'Actions rapides',
             'command.title': 'Actions rapides',
-            'command.subtitle': 'Accedez aux ecrans importants sans chercher.',
+            'command.subtitle': 'Accédez aux écrans importants sans chercher.',
             'command.search': 'Rechercher une action...',
             'command.empty': 'Aucune action trouvee.',
             'command.hint': 'Ctrl K',
@@ -36,14 +37,14 @@ const languages = {
             'command.candidatDashboard': 'Dashboard candidat',
             'command.profile': 'Profil candidat',
             'command.recruteurDashboard': 'Dashboard recruteur',
-            'command.createOffer': 'Creer une offre',
+            'command.createOffer': 'Créer une offre',
             'command.recruteurApplications': 'Candidatures recruteur',
             'command.admin': 'Dashboard admin',
             'toast.saved': 'Action effectuee avec succes.',
             'onboarding.title': 'Prochaines actions',
             'onboarding.subtitle': 'Checklist pour avancer sans friction.',
             'onboarding.completed': 'Complet',
-            'onboarding.candidat.profile': 'Completer le profil',
+            'onboarding.candidat.profile': 'Compléter le profil',
             'onboarding.candidat.cv': 'Ajouter le CV',
             'onboarding.candidat.apply': 'Postuler a une offre',
             'onboarding.recruteur.profile': 'Verifier l etablissement',
@@ -68,7 +69,7 @@ const languages = {
             'home.featured.title': 'Offres a la une',
             'home.featured.subtitle': "Selection d'opportunites actives, recentes et pretes a recevoir des candidatures.",
             'home.featured.explore': 'Voir toutes les offres',
-            'home.featured.opportunities': 'Opportunites',
+            'home.featured.opportunities': 'Opportunités',
             'home.featured.cities': 'Villes',
             'home.featured.averageSalary': 'Salaire moyen',
         },
@@ -80,7 +81,7 @@ const languages = {
         name: 'English',
         messages: {
             'nav.jobs': 'Browse jobs',
-            'nav.dashboard': 'Dashboard',
+            'nav.dashboard': 'Home',
             'nav.myOffers': 'My jobs',
             'nav.profile': 'My profile',
             'nav.login': 'Sign in',
@@ -149,7 +150,7 @@ const languages = {
         name: 'العربية',
         messages: {
             'nav.jobs': 'تصفح العروض',
-            'nav.dashboard': 'لوحة التحكم',
+            'nav.dashboard': 'الرئيسية',
             'nav.myOffers': 'عروضي',
             'nav.profile': 'ملفي',
             'nav.login': 'تسجيل الدخول',
@@ -264,7 +265,7 @@ function ToastViewport({ toasts, dismissToast }) {
 
 export function AppExperienceProvider({ children }) {
     const [theme, setTheme] = useState(() => getInitialValue('smartjobs-theme', 'dark', ['dark', 'light']));
-    const [language, setLanguage] = useState('fr');
+    const [language, setLanguage] = useState(() => getInitialValue('smartjobs-language', 'fr', Object.keys(languages)));
     const [toasts, setToasts] = useState([]);
 
     useEffect(() => {
@@ -284,7 +285,8 @@ export function AppExperienceProvider({ children }) {
     useEffect(() => {
         const activeLanguage = languages[language] ?? languages.fr;
         document.documentElement.lang = activeLanguage.code;
-        document.documentElement.dir = activeLanguage.dir;
+        document.documentElement.dir = 'ltr';
+        document.documentElement.dataset.languageDir = activeLanguage.dir;
         window.localStorage.setItem('smartjobs-language', activeLanguage.code);
     }, [language]);
 
@@ -292,8 +294,17 @@ export function AppExperienceProvider({ children }) {
         setTheme((current) => (current === 'dark' ? 'light' : 'dark'));
     }, []);
 
-    const t = useCallback((key) => {
-        return languages[language]?.messages?.[key] ?? languages.fr.messages[key] ?? key;
+    const t = useCallback((key, replacements = {}) => {
+        const template = demoMessages[language]?.[key]
+            ?? languages[language]?.messages?.[key]
+            ?? demoMessages.fr?.[key]
+            ?? languages.fr.messages[key]
+            ?? key;
+
+        return Object.entries(replacements).reduce(
+            (text, [name, value]) => text.replaceAll(`{${name}}`, String(value ?? '')),
+            template
+        );
     }, [language]);
 
     const showToast = useCallback((toast) => {

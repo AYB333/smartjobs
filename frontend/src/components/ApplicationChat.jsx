@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { MessageCircle, Send, X } from 'lucide-react';
 import api from '../api/axios';
+import { useI18n } from '../context/useAppExperience';
 
 function parseStoredUser() {
     try {
@@ -28,6 +29,7 @@ function formatDate(value) {
 }
 
 export default function ApplicationChat({ application, onClose }) {
+    const { t } = useI18n();
     const currentUser = useMemo(() => parseStoredUser(), []);
     const [messages, setMessages] = useState([]);
     const [draft, setDraft] = useState('');
@@ -50,7 +52,7 @@ export default function ApplicationChat({ application, onClose }) {
                 }
             } catch (requestError) {
                 if (active) {
-                    setError(requestError?.response?.data?.message || 'Impossible de charger la discussion.');
+                    setError(requestError?.response?.data?.message || t('chat.loadError'));
                 }
             } finally {
                 if (active) {
@@ -66,7 +68,7 @@ export default function ApplicationChat({ application, onClose }) {
         return () => {
             active = false;
         };
-    }, [application?.id]);
+    }, [application?.id, t]);
 
     const sendMessage = async (event) => {
         event.preventDefault();
@@ -84,7 +86,7 @@ export default function ApplicationChat({ application, onClose }) {
             setMessages((previous) => [...previous, response?.data?.data].filter(Boolean));
             setDraft('');
         } catch (requestError) {
-            setError(requestError?.response?.data?.message || 'Message non envoye.');
+            setError(requestError?.response?.data?.message || t('chat.sendError'));
         } finally {
             setSending(false);
         }
@@ -97,16 +99,16 @@ export default function ApplicationChat({ application, onClose }) {
                     <div>
                         <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-accent">
                             <MessageCircle size={14} />
-                            Discussion
+                            {t('chat.title')}
                         </p>
-                        <h2 className="mt-1 text-lg font-bold text-white">{offer?.titre_poste || 'Candidature acceptee'}</h2>
-                        <p className="mt-1 text-sm text-white/50">Accessible uniquement apres acceptation.</p>
+                        <h2 className="mt-1 text-lg font-bold text-white">{offer?.titre_poste || t('chat.fallbackOffer')}</h2>
+                        <p className="mt-1 text-sm text-white/50">{t('chat.acceptedOnly')}</p>
                     </div>
                     <button
                         type="button"
                         onClick={onClose}
                         className="rounded-full border border-borderGlass bg-white/5 p-2 text-white/70 transition-colors hover:border-accent/45 hover:text-white"
-                        aria-label="Fermer la discussion"
+                        aria-label={t('chat.close')}
                     >
                         <X size={18} />
                     </button>
@@ -114,13 +116,13 @@ export default function ApplicationChat({ application, onClose }) {
 
                 <div className="min-h-[280px] flex-1 space-y-3 overflow-y-auto px-5 py-4">
                     {loading ? (
-                        <p className="py-10 text-center text-sm text-white/50">Chargement...</p>
+                        <p className="py-10 text-center text-sm text-white/50">{t('common.loading')}</p>
                     ) : error ? (
                         <p className="rounded-2xl border border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">{error}</p>
                     ) : messages.length === 0 ? (
                         <div className="rounded-2xl border border-dashed border-borderGlass bg-white/5 px-5 py-8 text-center">
-                            <p className="font-semibold text-white">Aucun message pour le moment.</p>
-                            <p className="mt-2 text-sm text-white/55">Envoyez un premier message clair et professionnel.</p>
+                            <p className="font-semibold text-white">{t('chat.emptyTitle')}</p>
+                            <p className="mt-2 text-sm text-white/55">{t('chat.emptyText')}</p>
                         </div>
                     ) : (
                         messages.map((message) => {
@@ -135,7 +137,7 @@ export default function ApplicationChat({ application, onClose }) {
                                     }`}>
                                         <p className="text-sm leading-6">{message.message}</p>
                                         <p className="mt-2 text-[11px] text-white/42">
-                                            {message.sender?.name || (mine ? 'Vous' : 'Interlocuteur')} - {formatDate(message.created_at)}
+                                            {message.sender?.name || (mine ? t('common.you') : t('chat.contact'))} - {formatDate(message.created_at)}
                                         </p>
                                     </div>
                                 </div>
@@ -151,7 +153,7 @@ export default function ApplicationChat({ application, onClose }) {
                             onChange={(event) => setDraft(event.target.value)}
                             rows={2}
                             maxLength={1000}
-                            placeholder="Ecrire un message..."
+                            placeholder={t('chat.placeholder')}
                             className="min-h-[52px] flex-1 resize-none rounded-2xl border border-borderGlass bg-obsidian/70 px-4 py-3 text-sm text-white outline-none transition-colors placeholder:text-white/35 focus:border-accent/55"
                         />
                         <button
@@ -160,7 +162,7 @@ export default function ApplicationChat({ application, onClose }) {
                             className="inline-flex items-center justify-center gap-2 rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-55"
                         >
                             <Send size={16} />
-                            {sending ? 'Envoi...' : 'Envoyer'}
+                            {sending ? t('chat.sending') : t('chat.send')}
                         </button>
                     </div>
                 </form>

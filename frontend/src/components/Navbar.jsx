@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, CheckCheck, Menu, Moon, Search, Sun, X } from 'lucide-react';
+import { Bell, Check, CheckCheck, ChevronDown, Languages, Menu, Moon, Search, Sun, X } from 'lucide-react';
 import { useAppExperience } from '../context/useAppExperience';
 import api from '../api/axios';
 
@@ -17,7 +17,7 @@ function parseStoredUser() {
 function getBackendBaseUrl() {
     const base = api?.defaults?.baseURL || '';
     return base.replace(/\/api\/?$/, '');
-}
+}   
 
 function buildStorageUrl(baseUrl, path) {
     if (!path) return '';
@@ -100,15 +100,15 @@ function getCenterLinks(role, isAuthenticated, t) {
 
     if (role === 'recruteur') {
         return unique([
-            { label: 'Principale', to: '/recruteur/dashboard' },
+            { label: t('nav.dashboard'), to: '/recruteur/dashboard' },
             { label: t('nav.myOffers'), to: '/recruteur/dashboard#mes-offres' },
-            { label: 'Candidatures', to: '/recruteur/candidatures' },
+            { label: t('nav.recruiterApplications'), to: '/recruteur/candidatures' },
         ]);
     }
 
     if (role === 'candidat') {
         return unique([
-            { label: 'Principale', to: '/candidat/dashboard' },
+            { label: t('nav.dashboard'), to: '/candidat/dashboard' },
             { label: t('nav.jobs'), to: '/jobs' },
         ]);
     }
@@ -139,9 +139,10 @@ export default function Navbar() {
     const [currentUser, setCurrentUser] = useState(() => parseStoredUser());
     const [notificationCount, setNotificationCount] = useState(0);
     const [notificationOpen, setNotificationOpen] = useState(false);
+    const [languageOpen, setLanguageOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [notificationsLoading, setNotificationsLoading] = useState(false);
-    const { t, theme, toggleTheme } = useAppExperience();
+    const { t, theme, toggleTheme, language, languages, setLanguage } = useAppExperience();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -150,15 +151,21 @@ export default function Navbar() {
             setCurrentUser(parseStoredUser());
             setMenuOpen(false);
             setNotificationOpen(false);
+            setLanguageOpen(false);
         }, 0);
 
         return () => window.clearTimeout(timeoutId);
     }, [location.pathname]);
 
     useEffect(() => {
-        const syncAuthState = () => setCurrentUser(parseStoredUser());
+        const syncAuthState = (event) => setCurrentUser(event?.detail || parseStoredUser());
         window.addEventListener('storage', syncAuthState);
-        return () => window.removeEventListener('storage', syncAuthState);
+        window.addEventListener('smartjobs:user-updated', syncAuthState);
+
+        return () => {
+            window.removeEventListener('storage', syncAuthState);
+            window.removeEventListener('smartjobs:user-updated', syncAuthState);
+        };
     }, []);
 
     useEffect(() => {
@@ -172,16 +179,25 @@ export default function Navbar() {
             return () => window.clearTimeout(timeoutId);
         }
 
-        const timeoutId = window.setTimeout(async () => {
+        const refreshUnreadCount = async () => {
             try {
                 const response = await api.get('/notifications/unread-count');
                 setNotificationCount(Number(response?.data?.unread_count ?? 0));
             } catch {
                 setNotificationCount(0);
             }
-        }, 0);
+        };
 
-        return () => window.clearTimeout(timeoutId);
+        const timeoutId = window.setTimeout(refreshUnreadCount, 0);
+        const intervalId = window.setInterval(refreshUnreadCount, 30000);
+
+        window.addEventListener('focus', refreshUnreadCount);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+            window.clearInterval(intervalId);
+            window.removeEventListener('focus', refreshUnreadCount);
+        };
     }, [currentUser]);
 
     const isAuthenticated = Boolean(currentUser);
@@ -192,6 +208,7 @@ export default function Navbar() {
     const centerLinks = useMemo(() => getCenterLinks(role, isAuthenticated, t), [role, isAuthenticated, t]);
     const roleCta = useMemo(() => getRoleCta(role, isAuthenticated, t), [role, isAuthenticated, t]);
     const ThemeIcon = theme === 'dark' ? Sun : Moon;
+    const activeLanguage = languages[language] ?? languages.fr;
     const profilePath = role === 'candidat'
         ? '/candidat/profile'
         : role === 'recruteur'
@@ -252,6 +269,12 @@ export default function Navbar() {
         if (shouldOpen) {
             await loadNotifications();
         }
+    };
+
+    const changeLanguage = (nextLanguage) => {
+        setLanguage(nextLanguage);
+        setLanguageOpen(false);
+        setMenuOpen(false);
     };
 
     const openNotification = async (notification) => {
@@ -328,14 +351,57 @@ export default function Navbar() {
                             <ThemeIcon size={17} />
                         </button>
 
+                        <div className="relative hidden lg:block">
+                            <button
+                                type="button"
+                                onClick={() => setLanguageOpen((current) => !current)}
+                                className="inline-flex h-10 items-center gap-2 rounded-full border border-borderGlass bg-surface px-3 text-sm font-semibold text-white/80 transition-all duration-300 hover:border-accent/50 hover:text-white"
+                                aria-label={t('toolbar.language')}
+                                title={t('toolbar.language')}
+                            >
+                                <Languages size={16} className="text-accent" />
+                                {activeLanguage.label}
+                                <ChevronDown size={14} className={`transition-transform ${languageOpen ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            <AnimatePresence>
+                                {languageOpen && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                                        className="absolute right-0 top-12 z-[80] w-44 overflow-hidden rounded-2xl border border-accent/25 bg-deepNavy/98 p-1.5 shadow-[0_24px_70px_rgba(0,0,0,0.35)] backdrop-blur-xl"
+                                    >
+                                        {Object.values(languages).map((item) => {
+                                            const selected = item.code === language;
+
+                                            return (
+                                                <button
+                                                    key={item.code}
+                                                    type="button"
+                                                    onClick={() => changeLanguage(item.code)}
+                                                    className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
+                                                        selected ? 'bg-accent/15 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'
+                                                    }`}
+                                                >
+                                                    <span>{item.name}</span>
+                                                    {selected && <Check size={15} className="text-accent" />}
+                                                </button>
+                                            );
+                                        })}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
                         {isAuthenticated && (
                             <div className="relative hidden lg:block">
                                 <button
                                     type="button"
                                     onClick={toggleNotifications}
                                     className={utilityButtonClass.replace('hidden lg:inline-flex', 'inline-flex')}
-                                    aria-label="Notifications"
-                                    title={`${notificationCount} notification${notificationCount > 1 ? 's' : ''}`}
+                                    aria-label={t('common.notifications')}
+                                    title={t('common.unread', { count: notificationCount })}
                                 >
                                     <span className="relative inline-flex">
                                         <Bell size={17} />
@@ -357,8 +423,8 @@ export default function Navbar() {
                                         >
                                             <div className="flex items-center justify-between gap-3 border-b border-borderGlass px-4 py-3">
                                                 <div>
-                                                    <p className="text-sm font-bold text-white">Notifications</p>
-                                                    <p className="text-xs text-white/45">{notificationCount} non lue{notificationCount > 1 ? 's' : ''}</p>
+                                                    <p className="text-sm font-bold text-white">{t('common.notifications')}</p>
+                                                    <p className="text-xs text-white/45">{t('common.unread', { count: notificationCount })}</p>
                                                 </div>
                                                 <button
                                                     type="button"
@@ -366,15 +432,15 @@ export default function Navbar() {
                                                     className="inline-flex items-center gap-1.5 rounded-full border border-borderGlass bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/70 transition-colors hover:border-accent/45 hover:text-white"
                                                 >
                                                     <CheckCheck size={13} />
-                                                    Tout lire
+                                                    {t('common.markAllRead')}
                                                 </button>
                                             </div>
 
                                             <div className="max-h-[360px] overflow-y-auto p-2">
                                                 {notificationsLoading ? (
-                                                    <p className="px-3 py-5 text-center text-sm text-white/50">Chargement...</p>
+                                                    <p className="px-3 py-5 text-center text-sm text-white/50">{t('common.loading')}</p>
                                                 ) : notifications.length === 0 ? (
-                                                    <p className="px-3 py-5 text-center text-sm text-white/50">Aucune notification pour le moment.</p>
+                                                    <p className="px-3 py-5 text-center text-sm text-white/50">{t('common.noNotifications')}</p>
                                                 ) : (
                                                     notifications.map((notification) => (
                                                         <button
@@ -411,12 +477,12 @@ export default function Navbar() {
                                         className="hidden min-w-0 items-center gap-2 rounded-full border border-borderGlass bg-surface px-3 py-1.5 transition-colors hover:border-accent/50 hover:bg-white/10 lg:flex"
                                         title={t('command.profile')}
                                     >
-                                        <AvatarMark imageUrl={avatarPhotoUrl} alt={`Photo de ${displayName}`} letter={avatarLetter} />
+                                        <AvatarMark imageUrl={avatarPhotoUrl} alt={displayName} letter={avatarLetter} />
                                         <span className="max-w-[92px] truncate text-sm text-white/90 xl:max-w-[140px]">{displayName}</span>
                                     </Link>
                                 ) : (
                                     <div className="hidden min-w-0 items-center gap-2 rounded-full border border-borderGlass bg-surface px-3 py-1.5 lg:flex">
-                                        <AvatarMark imageUrl={avatarPhotoUrl} alt={`Photo de ${displayName}`} letter={avatarLetter} />
+                                        <AvatarMark imageUrl={avatarPhotoUrl} alt={displayName} letter={avatarLetter} />
                                         <span className="max-w-[92px] truncate text-sm text-white/90 xl:max-w-[140px]">{displayName}</span>
                                     </div>
                                 )}
@@ -500,6 +566,27 @@ export default function Navbar() {
                                     </button>
                                 </div>
 
+                                <div className="grid grid-cols-3 gap-2">
+                                    {Object.values(languages).map((item) => {
+                                        const selected = item.code === language;
+
+                                        return (
+                                            <button
+                                                key={item.code}
+                                                type="button"
+                                                onClick={() => changeLanguage(item.code)}
+                                                className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-colors ${
+                                                    selected
+                                                        ? 'border-accent/60 bg-accent/15 text-white'
+                                                        : 'border-borderGlass bg-white/5 text-white/75 hover:text-white'
+                                                }`}
+                                            >
+                                                {item.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
                                 {centerLinks.map((item) => (
                                     <Link
                                         key={item.label}
@@ -519,7 +606,7 @@ export default function Navbar() {
                                     >
                                         <span className="inline-flex items-center gap-2">
                                             <Bell size={16} />
-                                            Notifications
+                                            {t('common.notifications')}
                                         </span>
                                         {notificationCount > 0 && (
                                             <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-white">
@@ -537,12 +624,12 @@ export default function Navbar() {
                                                 onClick={() => setMenuOpen(false)}
                                                 className="mt-1 flex items-center gap-2 rounded-xl border border-borderGlass bg-surface px-3 py-2.5 transition-colors hover:border-accent/50 hover:bg-white/10"
                                             >
-                                                <AvatarMark imageUrl={avatarPhotoUrl} alt={`Photo de ${displayName}`} letter={avatarLetter} />
+                                                <AvatarMark imageUrl={avatarPhotoUrl} alt={displayName} letter={avatarLetter} />
                                                 <span className="text-sm text-white/90">{displayName}</span>
                                             </Link>
                                         ) : (
                                             <div className="mt-1 flex items-center gap-2 rounded-xl border border-borderGlass bg-surface px-3 py-2.5">
-                                                <AvatarMark imageUrl={avatarPhotoUrl} alt={`Photo de ${displayName}`} letter={avatarLetter} />
+                                                <AvatarMark imageUrl={avatarPhotoUrl} alt={displayName} letter={avatarLetter} />
                                                 <span className="text-sm text-white/90">{displayName}</span>
                                             </div>
                                         )}

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
+import { useI18n } from '../context/useAppExperience';
 
 const itemVariants = {
     hidden: { opacity: 0, y: 14 },
@@ -31,13 +32,6 @@ const applicationStatusBadgeClasses = {
     acceptee: 'bg-emerald-500/12 text-emerald-300 border-emerald-400/30',
     refusee: 'bg-rose-500/12 text-rose-300 border-rose-400/30',
 };
-
-const offerFilters = [
-    { value: 'all', label: 'Toutes' },
-    { value: 'active', label: 'Active' },
-    { value: 'expired', label: 'Expiree' },
-    { value: 'suspended', label: 'Suspendue' },
-];
 
 function extractOffersList(payload) {
     const paginated = payload?.data;
@@ -82,17 +76,17 @@ function toTimestamp(dateString) {
     return Number.isNaN(time) ? 0 : time;
 }
 
-function toReadableOfferStatus(status) {
-    if (status === 'active') return 'Active';
-    if (status === 'expired') return 'Expiree';
-    if (status === 'suspended') return 'Suspendue';
+function toReadableOfferStatus(status, t) {
+    if (status === 'active') return t('status.active');
+    if (status === 'expired') return t('status.expired');
+    if (status === 'suspended') return t('status.suspended');
     return status ?? '-';
 }
 
-function toReadableApplicationStatus(status) {
-    if (status === 'en_attente') return 'En attente';
-    if (status === 'acceptee') return 'Acceptee';
-    if (status === 'refusee') return 'Refusee';
+function toReadableApplicationStatus(status, t) {
+    if (status === 'en_attente') return t('status.pending');
+    if (status === 'acceptee') return t('status.accepted');
+    if (status === 'refusee') return t('status.rejected');
     return status ?? '-';
 }
 
@@ -172,6 +166,7 @@ function SummaryRow({ label, value, tone = 'default' }) {
 }
 
 export default function RecruteurDashboard() {
+    const { t } = useI18n();
     const location = useLocation();
     const [offers, setOffers] = useState([]);
     const [currentUser, setCurrentUser] = useState(() => parseStoredUser());
@@ -239,9 +234,9 @@ export default function RecruteurDashboard() {
     }, [location.hash]);
 
     const recruiterProfile = getRecruiterProfile(currentUser);
-    const establishmentName = recruiterProfile?.nom_etablissement || currentUser?.name || 'Espace recruteur';
+    const establishmentName = recruiterProfile?.nom_etablissement || currentUser?.name || t('recruiter.dashboard.establishmentFallback');
     const establishmentType = normalizeEstablishmentType(recruiterProfile?.type_etablissement);
-    const establishmentCity = recruiterProfile?.ville || 'Ville non renseignee';
+    const establishmentCity = recruiterProfile?.ville || t('recruiter.dashboard.cityMissing');
     const avatarInitials = getInitials(recruiterProfile?.nom_etablissement || currentUser?.name);
     const firstName = currentUser?.name?.split(' ')?.[0] || currentUser?.name || 'recruteur';
     const firstOffer = offers[0] ?? null;
@@ -262,6 +257,12 @@ export default function RecruteurDashboard() {
 
         return offers.filter((offer) => offer.status === offerStatusFilter);
     }, [offerStatusFilter, offers]);
+    const offerFilters = useMemo(() => [
+        { value: 'all', label: t('common.all') },
+        { value: 'active', label: t('status.active') },
+        { value: 'expired', label: t('status.expired') },
+        { value: 'suspended', label: t('status.suspended') },
+    ], [t]);
 
     const recentApplications = useMemo(() => getRecentApplications(offers), [offers]);
 
@@ -284,7 +285,7 @@ export default function RecruteurDashboard() {
                 {loading ? (
                     <div className="rounded-3xl border border-borderGlass bg-surface px-6 py-16 text-center">
                         <div className="mx-auto mb-4 h-9 w-9 animate-spin rounded-full border-2 border-white/20 border-t-accent" />
-                        <p className="text-white/60">Chargement du dashboard...</p>
+                        <p className="text-white/60">{t('common.loading')}</p>
                     </div>
                 ) : (
                     <motion.div
@@ -303,10 +304,10 @@ export default function RecruteurDashboard() {
                                         {avatarInitials}
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-accent">Accueil recruteur</p>
-                                        <h1 className="text-3xl font-black leading-tight text-white md:text-4xl">Bonjour, {firstName}</h1>
+                                        <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-accent">{t('recruiter.dashboard.kicker')}</p>
+                                        <h1 className="text-3xl font-black leading-tight text-white md:text-4xl">{t('recruiter.dashboard.hello', { name: firstName })}</h1>
                                         <p className="mt-3 max-w-3xl text-base leading-relaxed text-white/62">
-                                            Gerez vos offres, suivez les candidatures et trouvez les bons profils plus rapidement.
+                                            {t('recruiter.dashboard.subtitle')}
                                         </p>
                                         <div className="mt-4 flex flex-wrap gap-2 text-xs text-white/65">
                                             <span className="rounded-full border border-borderGlass bg-white/5 px-3 py-1.5">{establishmentName}</span>
@@ -317,27 +318,27 @@ export default function RecruteurDashboard() {
                                 </div>
 
                                 <div className="rounded-2xl border border-borderGlass bg-white/5 p-4">
-                                    <p className="text-xs font-semibold uppercase tracking-wider text-white/45">Actions rapides</p>
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-white/45">{t('recruiter.dashboard.quickActions')}</p>
                                     <div className="mt-4 grid gap-2">
                                         <Link
                                             to="/recruteur/offer/create"
                                             className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-accent/90"
                                         >
                                             <Plus size={16} />
-                                            Creer une offre
+                                            {t('recruiter.dashboard.createOffer')}
                                         </Link>
                                         <Link
                                             to={candidaturesUrl}
                                             className="inline-flex items-center justify-center gap-2 rounded-full border border-borderGlass bg-white/5 px-5 py-3 text-sm font-semibold text-white/75 transition-colors hover:border-accent/40 hover:text-white"
                                         >
-                                            Voir les candidatures
+                                            {t('recruiter.dashboard.viewApplications')}
                                             <ArrowRight size={15} />
                                         </Link>
                                         <Link
                                             to="/recruteur/profile"
                                             className="inline-flex items-center justify-center gap-2 rounded-full border border-borderGlass bg-white/5 px-5 py-3 text-sm font-semibold text-white/75 transition-colors hover:border-accent/40 hover:text-white"
                                         >
-                                            Modifier le profil
+                                            {t('recruiter.dashboard.editProfile')}
                                             <Building2 size={15} />
                                         </Link>
                                     </div>
@@ -353,29 +354,29 @@ export default function RecruteurDashboard() {
                                 >
                                     <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                                         <div>
-                                            <h2 className="text-xl font-bold text-white">Candidatures recentes</h2>
-                                            <p className="mt-1 text-sm text-white/55">Les derniers profils recus sur vos offres.</p>
+                                            <h2 className="text-xl font-bold text-white">{t('recruiter.dashboard.recentApplications')}</h2>
+                                            <p className="mt-1 text-sm text-white/55">{t('recruiter.dashboard.recentApplicationsHelp')}</p>
                                         </div>
                                         <Link
                                             to={candidaturesUrl}
                                             className="inline-flex w-fit items-center gap-2 rounded-full border border-borderGlass bg-white/5 px-4 py-2 text-sm font-semibold text-white/75 transition-colors hover:border-accent/40 hover:text-white"
                                         >
-                                            Tout voir
+                                            {t('recruiter.dashboard.viewAll')}
                                             <ArrowRight size={14} />
                                         </Link>
                                     </div>
 
                                     {recentApplications.length === 0 ? (
                                         <div className="rounded-2xl border border-dashed border-borderGlass bg-white/5 px-5 py-9 text-center">
-                                            <p className="font-semibold text-white">Aucune candidature recue pour le moment.</p>
+                                            <p className="font-semibold text-white">{t('recruiter.dashboard.noApplications')}</p>
                                             <p className="mx-auto mt-2 max-w-md text-sm text-white/55">
-                                                Publiez une offre claire pour commencer a recevoir des profils.
+                                                {t('recruiter.dashboard.noApplicationsHelp')}
                                             </p>
                                             <Link
                                                 to="/recruteur/offer/create"
                                                 className="mt-4 inline-flex items-center justify-center rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent/90"
                                             >
-                                                Creer une offre
+                                                {t('recruiter.dashboard.createOffer')}
                                             </Link>
                                         </div>
                                     ) : (
@@ -396,7 +397,7 @@ export default function RecruteurDashboard() {
                                                                 to={`/recruteur/candidatures?offer=${offer?.id}`}
                                                                 className="inline-flex shrink-0 items-center justify-center rounded-full bg-accent px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-accent/90"
                                                             >
-                                                                Voir candidature
+                                                                {t('recruiter.dashboard.viewApplication')}
                                                             </Link>
                                                         </div>
                                                         <div className="mt-3 flex flex-wrap gap-2">
@@ -407,7 +408,7 @@ export default function RecruteurDashboard() {
                                                             <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${
                                                                 applicationStatusBadgeClasses[application.status] || 'border-white/20 bg-white/10 text-white/75'
                                                             }`}>
-                                                                {toReadableApplicationStatus(application.status)}
+                                                                {toReadableApplicationStatus(application.status, t)}
                                                             </span>
                                                             <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/75">
                                                                 Quiz: {application.quiz_score ?? '-'}
@@ -427,8 +428,8 @@ export default function RecruteurDashboard() {
                                 >
                                     <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                                         <div>
-                                            <h2 className="text-xl font-bold text-white">Mes offres</h2>
-                                            <p className="mt-1 text-sm text-white/55">Statut de publication et acces rapide aux candidatures.</p>
+                                            <h2 className="text-xl font-bold text-white">{t('recruiter.dashboard.myOffers')}</h2>
+                                            <p className="mt-1 text-sm text-white/55">{t('recruiter.dashboard.myOffersHelp')}</p>
                                         </div>
                                         <div className="flex flex-wrap gap-2">
                                             {offerFilters.map((filter) => (
@@ -450,32 +451,32 @@ export default function RecruteurDashboard() {
 
                                     {offers.length === 0 ? (
                                         <div className="rounded-2xl border border-dashed border-borderGlass bg-white/5 px-5 py-9 text-center">
-                                            <p className="font-semibold text-white">Aucune offre publiee pour le moment.</p>
+                                            <p className="font-semibold text-white">{t('recruiter.dashboard.noOffers')}</p>
                                             <p className="mx-auto mt-2 max-w-md text-sm text-white/55">
-                                                Creez une premiere offre avec poste, ville, contrat, salaire et quiz optionnel.
+                                                {t('recruiter.dashboard.noOffersHelp')}
                                             </p>
                                             <Link
                                                 to="/recruteur/offer/create"
                                                 className="mt-4 inline-flex items-center justify-center rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent/90"
                                             >
-                                                Creer ma premiere offre
+                                                {t('recruiter.dashboard.createFirstOffer')}
                                             </Link>
                                         </div>
                                     ) : filteredOffers.length === 0 ? (
                                         <div className="rounded-2xl border border-dashed border-borderGlass bg-white/5 px-5 py-9 text-center text-white/60">
-                                            Aucune offre dans ce statut.
+                                            {t('recruiter.dashboard.noStatusOffers')}
                                         </div>
                                     ) : (
                                         <div className="overflow-x-auto">
                                             <table className="min-w-full text-left text-sm">
                                                 <thead>
                                                     <tr className="border-b border-borderGlass text-xs uppercase tracking-wider text-white/45">
-                                                        <th className="px-3 py-3 font-semibold">Poste</th>
-                                                        <th className="px-3 py-3 font-semibold">Ville</th>
-                                                        <th className="px-3 py-3 font-semibold">Echeance</th>
-                                                        <th className="px-3 py-3 font-semibold">Statut</th>
-                                                        <th className="px-3 py-3 font-semibold">Candidatures</th>
-                                                        <th className="px-3 py-3 font-semibold">Actions</th>
+                                                        <th className="px-3 py-3 font-semibold">{t('candidate.dashboard.position')}</th>
+                                                        <th className="px-3 py-3 font-semibold">{t('common.city')}</th>
+                                                        <th className="px-3 py-3 font-semibold">{t('recruiter.dashboard.deadline')}</th>
+                                                        <th className="px-3 py-3 font-semibold">{t('common.status')}</th>
+                                                        <th className="px-3 py-3 font-semibold">{t('candidate.dashboard.applications')}</th>
+                                                        <th className="px-3 py-3 font-semibold">{t('recruiter.dashboard.actions')}</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -491,7 +492,7 @@ export default function RecruteurDashboard() {
                                                                 <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${
                                                                     offerStatusBadgeClasses[offer.status] || 'border-white/20 bg-white/10 text-white/75'
                                                                 }`}>
-                                                                    {toReadableOfferStatus(offer.status)}
+                                                                    {toReadableOfferStatus(offer.status, t)}
                                                                 </span>
                                                             </td>
                                                             <td className="px-3 py-4 font-semibold text-white">{getApplicationsCount(offer)}</td>
@@ -501,20 +502,20 @@ export default function RecruteurDashboard() {
                                                                         to={`/jobs/${offer.id}`}
                                                                         className="rounded-full border border-borderGlass bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/75 transition-colors hover:border-accent/40 hover:text-white"
                                                                     >
-                                                                        Voir
+                                                                        {t('recruiter.dashboard.view')}
                                                                     </Link>
                                                                     <Link
                                                                         to={`/recruteur/candidatures?offer=${offer.id}`}
                                                                         className="rounded-full border border-borderGlass bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/75 transition-colors hover:border-accent/40 hover:text-white"
                                                                     >
-                                                                        Candidatures
+                                                                        {t('candidate.dashboard.applications')}
                                                                     </Link>
                                                                     <Link
                                                                         to={`/recruteur/offer/edit/${offer.id}`}
                                                                         className="inline-flex items-center gap-1 rounded-full border border-borderGlass bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/75 transition-colors hover:border-accent/40 hover:text-white"
                                                                     >
                                                                         <Edit3 size={12} />
-                                                                        Modifier
+                                                                        {t('recruiter.dashboard.edit')}
                                                                     </Link>
                                                                 </div>
                                                             </td>
@@ -540,9 +541,9 @@ export default function RecruteurDashboard() {
                                         <Briefcase size={20} className="text-white/45" />
                                     </div>
                                     <div className="space-y-2.5">
-                                        <SummaryRow label="Offres actives" value={activeOffers} tone="active" />
-                                        <SummaryRow label="Candidatures recues" value={totalApplications} tone="applications" />
-                                        <SummaryRow label="Vues aujourd'hui" value={viewsToday} tone="quota" />
+                                        <SummaryRow label={t('recruiter.dashboard.activeOffers')} value={activeOffers} tone="active" />
+                                        <SummaryRow label={t('recruiter.dashboard.receivedApplications')} value={totalApplications} tone="applications" />
+                                        <SummaryRow label={t('recruiter.dashboard.viewsToday')} value={viewsToday} tone="quota" />
                                     </div>
                                 </motion.section>
 
@@ -552,9 +553,9 @@ export default function RecruteurDashboard() {
                                 >
                                     <div className="mb-4 flex items-start justify-between gap-4">
                                         <div>
-                                            <p className="text-xs font-semibold uppercase tracking-wider text-accent">Quota premium</p>
+                                            <p className="text-xs font-semibold uppercase tracking-wider text-accent">{t('recruiter.dashboard.quotaPremium')}</p>
                                             <h2 className="mt-1 text-xl font-bold text-white">
-                                                {isPremium ? 'Premium actif' : `Quota ${quotaUsed}/${dailyLimit}`}
+                                                {isPremium ? t('common.premiumActive') : t('recruiter.dashboard.quotaLabel', { used: quotaUsed, limit: dailyLimit })}
                                             </h2>
                                         </div>
                                         <Crown size={20} className={isPremium ? 'text-emerald-300' : 'text-accent'} />
@@ -564,7 +565,10 @@ export default function RecruteurDashboard() {
                                         <div className="rounded-2xl border border-emerald-400/25 bg-emerald-500/10 p-4">
                                             <p className="text-sm font-semibold text-emerald-200">Consultation illimitee active.</p>
                                             <p className="mt-1 text-xs text-white/60">
-                                                Expire le {formatDate(subscription?.expires_at)} ({subscription?.days_remaining ?? 0} jours restants)
+                                                {t('recruiter.dashboard.expiresOn', {
+                                                    date: formatDate(subscription?.expires_at),
+                                                    days: subscription?.days_remaining ?? 0,
+                                                })}
                                             </p>
                                         </div>
                                     ) : (
@@ -579,7 +583,7 @@ export default function RecruteurDashboard() {
                                                 to="/recruteur/premium"
                                                 className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-accent/90"
                                             >
-                                                Passer Premium
+                                                {t('recruiter.dashboard.upgradePremium')}
                                                 <ArrowUpRight size={15} />
                                             </Link>
                                         </div>
@@ -604,7 +608,7 @@ export default function RecruteurDashboard() {
                                             <span className="font-semibold text-white">{establishmentType}</span>
                                         </div>
                                         <div className="flex items-center justify-between gap-3">
-                                            <span className="text-white/50">Ville</span>
+                                            <span className="text-white/50">{t('common.city')}</span>
                                             <span className="font-semibold text-white">{establishmentCity}</span>
                                         </div>
                                     </div>

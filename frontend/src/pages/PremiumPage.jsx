@@ -6,6 +6,7 @@ import { Elements, CardElement, useElements, useStripe } from '@stripe/react-str
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
+import { useI18n } from '../context/useAppExperience';
 
 const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
 const stripePromise = publishableKey ? loadStripe(publishableKey) : null;
@@ -22,7 +23,7 @@ const cardElementOptions = {
     },
 };
 
-function CheckoutForm({ clientSecret, paymentIntentId, packageType, onSuccess, disabled }) {
+function CheckoutForm({ clientSecret, paymentIntentId, packageType, onSuccess, disabled, t }) {
     const stripe = useStripe();
     const elements = useElements();
     const [submitting, setSubmitting] = useState(false);
@@ -51,7 +52,7 @@ function CheckoutForm({ clientSecret, paymentIntentId, packageType, onSuccess, d
             });
 
             if (result.error) {
-                setError(result.error.message || 'Paiement refuse.');
+                setError(result.error.message || t('premium.paymentRejected'));
                 return;
             }
 
@@ -64,7 +65,7 @@ function CheckoutForm({ clientSecret, paymentIntentId, packageType, onSuccess, d
                 return;
             }
 
-            setError('Paiement non valide.');
+            setError(t('premium.paymentInvalid'));
         } catch (requestError) {
             setError(requestError?.response?.data?.message || 'Erreur de confirmation du paiement.');
         } finally {
@@ -78,7 +79,7 @@ function CheckoutForm({ clientSecret, paymentIntentId, packageType, onSuccess, d
                 <CardElement options={cardElementOptions} />
             </div>
             <p className="text-xs text-white/45">
-                Carte test Stripe: 4242 4242 4242 4242 · date future · CVC libre.
+                {t('premium.cardTest')}
             </p>
             {error && <p className="text-sm text-rose-300">{error}</p>}
             <button
@@ -86,7 +87,7 @@ function CheckoutForm({ clientSecret, paymentIntentId, packageType, onSuccess, d
                 disabled={disabled || submitting || !stripe}
                 className="w-full rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white hover:bg-accent/90 disabled:opacity-60"
             >
-                {submitting ? 'Validation du paiement...' : 'Activer Premium'}
+                {submitting ? t('premium.validating') : t('premium.activate')}
             </button>
         </form>
     );
@@ -94,6 +95,7 @@ function CheckoutForm({ clientSecret, paymentIntentId, packageType, onSuccess, d
 
 export default function PremiumPage() {
     const navigate = useNavigate();
+    const { t } = useI18n();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [subscription, setSubscription] = useState({
@@ -150,7 +152,7 @@ export default function PremiumPage() {
     };
 
     const handleSuccess = async () => {
-        setSuccessMessage('Premium active avec succes.');
+        setSuccessMessage(t('premium.success'));
         setClientSecret('');
         setPaymentIntentId('');
         try {
@@ -172,8 +174,8 @@ export default function PremiumPage() {
 
             <main className="container mx-auto px-6 pt-32 pb-16">
                 <section className="mb-8">
-                    <h1 className="text-4xl font-black text-white">Offre Premium Recruteur</h1>
-                    <p className="mt-2 text-white/60">Passez au premium pour debloquer un recrutement sans limite.</p>
+                    <h1 className="text-4xl font-black text-white">{t('premium.title')}</h1>
+                    <p className="mt-2 text-white/60">{t('premium.subtitle')}</p>
                 </section>
 
                 {error && (
@@ -196,7 +198,7 @@ export default function PremiumPage() {
                 {loading ? (
                     <div className="rounded-3xl border border-borderGlass bg-surface px-6 py-16 text-center">
                         <div className="mx-auto mb-4 h-9 w-9 animate-spin rounded-full border-2 border-white/20 border-t-accent" />
-                        <p className="text-white/60">Chargement abonnement...</p>
+                        <p className="text-white/60">{t('premium.loading')}</p>
                     </div>
                 ) : (
                     <>
@@ -207,38 +209,40 @@ export default function PremiumPage() {
                                     : 'border-amber-400/30 bg-amber-500/15 text-amber-200'
                             }`}>
                                 {subscription?.is_premium ? <CheckCircle2 size={14} /> : <ShieldAlert size={14} />}
-                                {subscription?.is_premium ? 'Premium actif' : 'Plan gratuit'}
+                                {subscription?.is_premium ? t('common.premiumActive') : t('common.freePlan')}
                             </span>
                             {subscription?.is_premium && (
                                 <p className="text-sm text-white/70">
-                                    Expire le {subscription?.expires_at ? new Date(subscription.expires_at).toLocaleDateString('fr-FR') : '-'} ·
-                                    {' '}{subscription?.days_remaining ?? 0} jours restants
+                                    {t('premium.expireOn', {
+                                        date: subscription?.expires_at ? new Date(subscription.expires_at).toLocaleDateString('fr-FR') : '-',
+                                        days: subscription?.days_remaining ?? 0,
+                                    })}
                                 </p>
                             )}
                         </div>
 
                         <section className="grid gap-6 md:grid-cols-2">
                             <div className="rounded-3xl border border-borderGlass bg-surface p-6">
-                                <h2 className="text-2xl font-bold text-white">Gratuit</h2>
-                                <p className="mt-2 text-white/60">Plan de base pour debuter.</p>
+                                <h2 className="text-2xl font-bold text-white">{t('premium.freeTitle')}</h2>
+                                <p className="mt-2 text-white/60">{t('premium.freeSubtitle')}</p>
                                 <ul className="mt-5 space-y-2 text-sm text-white/70">
-                                    <li>• 1 profil candidat / jour</li>
-                                    <li>• Visibilite standard</li>
-                                    <li>• Support prioritaire non inclus</li>
+                                    <li>• {t('premium.freeFeature1')}</li>
+                                    <li>• {t('premium.freeFeature2')}</li>
+                                    <li>• {t('premium.freeFeature3')}</li>
                                 </ul>
                             </div>
 
                             <div className="rounded-3xl border border-accent/40 bg-accent/10 p-6 shadow-[0_0_35px_rgba(232,101,26,0.2)]">
                                 <p className="inline-flex items-center gap-2 rounded-full border border-accent/50 bg-accent/15 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent">
                                     <Crown size={13} />
-                                    Premium
+                                    {t('premium.premiumBadge')}
                                 </p>
-                                <h2 className="mt-3 text-2xl font-bold text-white">Acces illimite</h2>
-                                <p className="mt-2 text-white/70">Recrutez sans quotas et boostez vos offres.</p>
+                                <h2 className="mt-3 text-2xl font-bold text-white">{t('premium.premiumTitle')}</h2>
+                                <p className="mt-2 text-white/70">{t('premium.premiumSubtitle')}</p>
                                 <ul className="mt-5 space-y-2 text-sm text-white/80">
-                                    <li>• Consultation profils illimitee</li>
-                                    <li>• Offres illimitees</li>
-                                    <li>• Priorite sur le support</li>
+                                    <li>• {t('premium.premiumFeature1')}</li>
+                                    <li>• {t('premium.premiumFeature2')}</li>
+                                    <li>• {t('premium.premiumFeature3')}</li>
                                 </ul>
 
                                 <div className="mt-6 grid grid-cols-2 gap-2">
@@ -251,7 +255,7 @@ export default function PremiumPage() {
                                                 : 'border-borderGlass bg-white/5 text-white/75 hover:text-white'
                                         }`}
                                     >
-                                        Mensuel · $10
+                                        {t('premium.monthly')}
                                     </button>
                                     <button
                                         type="button"
@@ -262,19 +266,22 @@ export default function PremiumPage() {
                                                 : 'border-borderGlass bg-white/5 text-white/75 hover:text-white'
                                         }`}
                                     >
-                                        Annuel · $100
+                                        {t('premium.yearly')}
                                     </button>
                                 </div>
                             </div>
                         </section>
 
                         <section className="mt-8 rounded-3xl border border-borderGlass bg-surface p-6 md:p-8">
-                            <h3 className="text-xl font-semibold text-white mb-2">Paiement securise Stripe</h3>
-                            <p className="text-white/60 mb-5">Confirmez votre carte pour activer Premium immediatement.</p>
+                            <h3 className="text-xl font-semibold text-white mb-2">{t('premium.securePayment')}</h3>
+                            <p className="text-white/60 mb-5">{t('premium.paymentHelp')}</p>
 
                             {!hasStripe && (
-                                <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-amber-100">
-                                    Definissez `VITE_STRIPE_PUBLISHABLE_KEY` dans le frontend pour afficher Stripe Elements.
+                                <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-4 text-amber-100">
+                                    <p className="font-semibold">{t('premium.paymentSoon')}</p>
+                                    <p className="mt-1 text-sm text-amber-100/75">
+                                        {t('premium.paymentSoonText')}
+                                    </p>
                                 </div>
                             )}
 
@@ -285,7 +292,7 @@ export default function PremiumPage() {
                                     onClick={preparePayment}
                                     className="rounded-xl bg-accent px-6 py-3 text-sm font-semibold text-white hover:bg-accent/90 disabled:opacity-70"
                                 >
-                                    {intentLoading ? 'Preparation...' : 'Continuer vers paiement'}
+                                    {intentLoading ? t('premium.preparing') : t('premium.continuePayment')}
                                 </button>
                             )}
 
@@ -297,6 +304,7 @@ export default function PremiumPage() {
                                         packageType={packageType}
                                         onSuccess={handleSuccess}
                                         disabled={intentLoading}
+                                        t={t}
                                     />
                                 </Elements>
                             )}
