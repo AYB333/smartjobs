@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Storage;
  * @property string $ville
  * @property string $status
  * @property string|null $image_path
+ * @property string|null $suspension_reason
  * @property CarbonInterface|null $expires_at
  * @property-read string|null $image_url
  * @property-read string|null $establishment_name

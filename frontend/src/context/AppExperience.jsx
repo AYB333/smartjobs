@@ -264,7 +264,7 @@ function ToastViewport({ toasts, dismissToast }) {
 
 export function AppExperienceProvider({ children }) {
     const [theme, setTheme] = useState(() => getInitialValue('smartjobs-theme', 'dark', ['dark', 'light']));
-    const [language, setLanguage] = useState(() => getInitialValue('smartjobs-language', 'fr', Object.keys(languages)));
+    const [language, setLanguage] = useState('fr');
     const [toasts, setToasts] = useState([]);
 
     useEffect(() => {

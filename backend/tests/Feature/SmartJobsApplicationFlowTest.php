@@ -3,12 +3,14 @@
 namespace Tests\Feature;
 
 use App\Models\Application;
+use App\Models\ApplicationMessage;
 use App\Models\CandidatProfile;
 use App\Models\JobOffer;
 use App\Models\Question;
 use App\Models\Quiz;
 use App\Models\RecruteurProfile;
 use App\Models\User;
+use App\Models\UserNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -38,6 +40,10 @@ class SmartJobsApplicationFlowTest extends TestCase
             'candidat_id' => $candidate->id,
             'cv_path' => 'cvs/test-cv.pdf',
             'status' => 'en_attente',
+        ]);
+        $this->assertDatabaseHas('user_notifications', [
+            'user_id' => $offer->recruteur_id,
+            'type' => 'application_received',
         ]);
     }
 
@@ -88,6 +94,24 @@ class SmartJobsApplicationFlowTest extends TestCase
             'quiz_score' => 50,
         ]);
         $this->assertSame(1, Application::where('job_offer_id', $offer->id)->where('candidat_id', $candidate->id)->count());
+    }
+
+    public function test_candidate_cannot_open_quiz_before_applying(): void
+    {
+        $candidate = $this->candidateWithProfile();
+        $offer = $this->offerForRecruiter();
+        $quiz = Quiz::factory()->for($offer, 'jobOffer')->create(['passing_score' => 50]);
+        Question::factory()->for($quiz)->create([
+            'question_text' => 'Bonne pratique ?',
+            'options' => ['A', 'B'],
+            'correct_answer' => 'A',
+        ]);
+
+        Sanctum::actingAs($candidate);
+
+        $this->getJson("/api/offres/{$offer->id}/pass-quiz")
+            ->assertForbidden()
+            ->assertJsonPath('success', false);
     }
 
     public function test_duplicate_application_returns_conflict_and_keeps_single_application(): void
@@ -150,6 +174,10 @@ class SmartJobsApplicationFlowTest extends TestCase
             'id' => $application->id,
             'status' => 'acceptee',
         ]);
+        $this->assertDatabaseHas('user_notifications', [
+            'user_id' => $candidate->id,
+            'type' => 'application_accepted',
+        ]);
 
         $this->patchJson("/api/postulations/{$application->id}/status", ['status' => 'refusee'])
             ->assertOk();
@@ -158,6 +186,10 @@ class SmartJobsApplicationFlowTest extends TestCase
             'id' => $application->id,
             'status' => 'refusee',
         ]);
+        $this->assertDatabaseHas('user_notifications', [
+            'user_id' => $candidate->id,
+            'type' => 'application_refused',
+        ]);
 
         Sanctum::actingAs($otherRecruiter);
 
@@ -165,17 +197,28 @@ class SmartJobsApplicationFlowTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_admin_can_suspend_and_activate_offer_and_suspended_offer_is_hidden_publicly(): void
+    public function test_admin_can_suspend_offer_with_reason_activate_it_and_suspended_offer_is_hidden_publicly(): void
     {
         $admin = User::factory()->admin()->create();
         $offer = $this->offerForRecruiter();
         $visibleOffer = $this->offerForRecruiter(attributes: ['titre_poste' => 'Cuisinier']);
+        $reason = 'Contenu incomplet ou non conforme.';
 
         Sanctum::actingAs($admin);
 
-        $this->patchJson("/api/admin/offers/{$offer->id}/status", ['status' => 'suspended'])
+        $this->patchJson("/api/admin/offers/{$offer->id}/status", [
+            'status' => 'suspended',
+            'suspension_reason' => $reason,
+        ])
             ->assertOk()
-            ->assertJsonPath('data.status', 'suspended');
+            ->assertJsonPath('data.status', 'suspended')
+            ->assertJsonPath('data.suspension_reason', $reason);
+
+        $this->assertDatabaseHas('job_offers', [
+            'id' => $offer->id,
+            'status' => 'suspended',
+            'suspension_reason' => $reason,
+        ]);
 
         $publicResponse = $this->getJson('/api/offres?limit=100');
         $publicResponse->assertOk();
@@ -186,7 +229,14 @@ class SmartJobsApplicationFlowTest extends TestCase
 
         $this->patchJson("/api/admin/offers/{$offer->id}/status", ['status' => 'active'])
             ->assertOk()
-            ->assertJsonPath('data.status', 'active');
+            ->assertJsonPath('data.status', 'active')
+            ->assertJsonPath('data.suspension_reason', null);
+
+        $this->assertDatabaseHas('job_offers', [
+            'id' => $offer->id,
+            'status' => 'active',
+            'suspension_reason' => null,
+        ]);
 
         $publicResponse = $this->getJson('/api/offres?limit=100');
         $offerIds = collect($publicResponse->json('data.data'))->pluck('id');
@@ -235,6 +285,98 @@ class SmartJobsApplicationFlowTest extends TestCase
             'user_id' => $candidate->id,
             'job_offer_id' => $offer->id,
         ]);
+    }
+
+    public function test_authenticated_user_can_read_and_mark_notifications(): void
+    {
+        $candidate = $this->candidateWithProfile();
+        $notification = UserNotification::create([
+            'user_id' => $candidate->id,
+            'type' => 'application_accepted',
+            'title' => 'Candidature acceptee',
+            'message' => 'Votre candidature a ete acceptee.',
+            'data' => ['action_url' => '/candidat/dashboard'],
+        ]);
+
+        Sanctum::actingAs($candidate);
+
+        $this->getJson('/api/notifications/unread-count')
+            ->assertOk()
+            ->assertJsonPath('unread_count', 1);
+
+        $this->getJson('/api/notifications')
+            ->assertOk()
+            ->assertJsonPath('unread_count', 1)
+            ->assertJsonPath('data.0.id', $notification->id);
+
+        $this->patchJson("/api/notifications/{$notification->id}/read")
+            ->assertOk()
+            ->assertJsonPath('unread_count', 0);
+
+        $this->assertNotNull($notification->fresh()->read_at);
+
+        UserNotification::create([
+            'user_id' => $candidate->id,
+            'type' => 'new_matching_offer',
+            'title' => 'Nouvelle offre',
+            'message' => 'Une offre correspond a votre profil.',
+        ]);
+
+        $this->patchJson('/api/notifications/read-all')
+            ->assertOk()
+            ->assertJsonPath('unread_count', 0);
+
+        $this->assertSame(0, UserNotification::where('user_id', $candidate->id)->whereNull('read_at')->count());
+    }
+
+    public function test_accepted_application_chat_allows_only_participants(): void
+    {
+        $owner = $this->recruiterWithProfile();
+        $candidate = $this->candidateWithProfile();
+        $otherCandidate = $this->candidateWithProfile();
+        $offer = $this->offerForRecruiter($owner);
+        $application = Application::factory()->for($offer, 'jobOffer')->create([
+            'candidat_id' => $candidate->id,
+            'status' => 'acceptee',
+        ]);
+        $pendingApplication = Application::factory()->for($offer, 'jobOffer')->create([
+            'candidat_id' => $otherCandidate->id,
+            'status' => 'en_attente',
+        ]);
+
+        Sanctum::actingAs($candidate);
+
+        $this->postJson("/api/postulations/{$application->id}/messages", [
+            'message' => 'Bonjour, merci pour votre retour.',
+        ])
+            ->assertCreated()
+            ->assertJsonPath('success', true);
+
+        $this->assertDatabaseHas('application_messages', [
+            'application_id' => $application->id,
+            'sender_id' => $candidate->id,
+            'message' => 'Bonjour, merci pour votre retour.',
+        ]);
+        $this->assertDatabaseHas('user_notifications', [
+            'user_id' => $owner->id,
+            'type' => 'chat_message',
+        ]);
+
+        Sanctum::actingAs($owner);
+
+        $this->getJson("/api/postulations/{$application->id}/messages")
+            ->assertOk()
+            ->assertJsonPath('data.0.message', 'Bonjour, merci pour votre retour.');
+
+        $this->assertNotNull(ApplicationMessage::first()?->fresh()?->read_at);
+
+        Sanctum::actingAs($otherCandidate);
+
+        $this->getJson("/api/postulations/{$application->id}/messages")
+            ->assertForbidden();
+
+        $this->getJson("/api/postulations/{$pendingApplication->id}/messages")
+            ->assertForbidden();
     }
 
     private function candidateWithProfile(?string $cvPath = 'cvs/test-cv.pdf'): User

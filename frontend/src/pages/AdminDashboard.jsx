@@ -147,6 +147,8 @@ export default function AdminDashboard() {
     const [offerStatusFilter, setOfferStatusFilter] = useState('all');
     const [userSearch, setUserSearch] = useState('');
     const [userRoleFilter, setUserRoleFilter] = useState('all');
+    const [suspensionTarget, setSuspensionTarget] = useState(null);
+    const [suspensionReason, setSuspensionReason] = useState('');
 
     const loadDashboard = useCallback(async () => {
         setLoading(true);
@@ -271,14 +273,28 @@ export default function AdminDashboard() {
         },
     ]), [offers.length, users.length]);
 
-    const updateOfferStatus = async (offerId, status) => {
+    const updateOfferStatus = async (offerId, status, suspensionReasonValue = '') => {
         setActionLoading((current) => ({ ...current, [offerId]: true }));
         setError('');
 
         try {
-            await api.patch(`/admin/offers/${offerId}/status`, { status });
+            const payload = status === 'suspended'
+                ? { status, suspension_reason: suspensionReasonValue.trim() || null }
+                : { status };
+            const response = await api.patch(`/admin/offers/${offerId}/status`, payload);
+            const updatedOffer = response?.data?.data ?? {};
+
             setOffers((currentOffers) => currentOffers.map((offer) => (
-                offer.id === offerId ? { ...offer, status } : offer
+                offer.id === offerId
+                    ? {
+                        ...offer,
+                        ...updatedOffer,
+                        status,
+                        suspension_reason: status === 'suspended'
+                            ? updatedOffer.suspension_reason ?? payload.suspension_reason
+                            : null,
+                    }
+                    : offer
             )));
 
             const statsResponse = await api.get('/admin/stats');
@@ -288,6 +304,8 @@ export default function AdminDashboard() {
                 title: 'Moderation',
                 message: status === 'active' ? 'Offre activee.' : 'Offre suspendue.',
             });
+
+            return true;
         } catch (requestError) {
             const message =
                 requestError?.response?.data?.message
@@ -298,10 +316,38 @@ export default function AdminDashboard() {
                 title: 'Moderation',
                 message,
             });
+
+            return false;
         } finally {
             setActionLoading((current) => ({ ...current, [offerId]: false }));
         }
     };
+
+    const openSuspensionDialog = (offer) => {
+        setSuspensionTarget(offer);
+        setSuspensionReason(offer?.suspension_reason || '');
+    };
+
+    const closeSuspensionDialog = () => {
+        setSuspensionTarget(null);
+        setSuspensionReason('');
+    };
+
+    const confirmSuspension = async (event) => {
+        event.preventDefault();
+
+        if (!suspensionTarget) {
+            return;
+        }
+
+        const saved = await updateOfferStatus(suspensionTarget.id, 'suspended', suspensionReason);
+
+        if (saved) {
+            closeSuspensionDialog();
+        }
+    };
+
+    const suspensionBusy = suspensionTarget ? Boolean(actionLoading[suspensionTarget.id]) : false;
 
     return (
         <motion.div
@@ -548,12 +594,12 @@ export default function AdminDashboard() {
                                     <table className="min-w-full text-left text-sm">
                                         <thead>
                                             <tr className="border-b border-borderGlass text-xs uppercase tracking-wider text-white/50">
-                                                <th className="px-4 py-3 font-semibold">titre_poste</th>
-                                                <th className="px-4 py-3 font-semibold">recruteur</th>
-                                                <th className="px-4 py-3 font-semibold">ville</th>
-                                                <th className="px-4 py-3 font-semibold">status</th>
-                                                <th className="px-4 py-3 font-semibold">expires_at</th>
-                                                <th className="px-4 py-3 font-semibold">actions</th>
+                                                <th className="px-4 py-3 font-semibold">Poste</th>
+                                                <th className="px-4 py-3 font-semibold">Recruteur</th>
+                                                <th className="px-4 py-3 font-semibold">Ville</th>
+                                                <th className="px-4 py-3 font-semibold">Statut</th>
+                                                <th className="px-4 py-3 font-semibold">Expiration</th>
+                                                <th className="px-4 py-3 font-semibold">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -577,6 +623,11 @@ export default function AdminDashboard() {
                                                             >
                                                                 {readableStatus(offerStatus)}
                                                             </span>
+                                                            {offerStatus === 'suspended' && offer.suspension_reason && (
+                                                                <p className="mt-2 max-w-[240px] text-xs leading-5 text-amber-100/75">
+                                                                    <span className="font-semibold text-amber-200">Motif:</span> {offer.suspension_reason}
+                                                                </p>
+                                                            )}
                                                         </td>
                                                         <td className="px-4 py-4">
                                                             <span className="inline-flex items-center gap-1.5 text-white/75">
@@ -590,7 +641,7 @@ export default function AdminDashboard() {
                                                                     <button
                                                                         type="button"
                                                                         disabled={isBusy}
-                                                                        onClick={() => updateOfferStatus(offer.id, 'suspended')}
+                                                                        onClick={() => openSuspensionDialog(offer)}
                                                                         className="rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-200 transition-colors hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
                                                                     >
                                                                         Suspendre
@@ -666,10 +717,10 @@ export default function AdminDashboard() {
                                     <table className="min-w-full text-left text-sm">
                                         <thead>
                                             <tr className="border-b border-borderGlass text-xs uppercase tracking-wider text-white/50">
-                                                <th className="px-4 py-3 font-semibold">name</th>
-                                                <th className="px-4 py-3 font-semibold">email</th>
-                                                <th className="px-4 py-3 font-semibold">role</th>
-                                                <th className="px-4 py-3 font-semibold">created_at</th>
+                                                <th className="px-4 py-3 font-semibold">Nom</th>
+                                                <th className="px-4 py-3 font-semibold">Email</th>
+                                                <th className="px-4 py-3 font-semibold">Role</th>
+                                                <th className="px-4 py-3 font-semibold">Creation</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -698,6 +749,74 @@ export default function AdminDashboard() {
                     </motion.div>
                 )}
             </main>
+
+            {suspensionTarget && (
+                <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
+                    <motion.form
+                        initial={{ opacity: 0, y: 18, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        onSubmit={confirmSuspension}
+                        className="w-full max-w-lg rounded-3xl border border-borderGlass bg-deepNavy p-6 shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+                    >
+                        <div className="mb-5 flex items-start justify-between gap-4">
+                            <div>
+                                <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-amber-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-amber-200">
+                                    <AlertTriangle size={13} />
+                                    Moderation
+                                </p>
+                                <h2 className="text-xl font-bold text-white">Motif de suspension</h2>
+                                <p className="mt-1 text-sm text-white/55">
+                                    {suspensionTarget.titre_poste || 'Offre selectionnee'}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={closeSuspensionDialog}
+                                disabled={suspensionBusy}
+                                className="rounded-full border border-borderGlass bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/65 transition-colors hover:border-white/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Fermer
+                            </button>
+                        </div>
+
+                        <label className="block">
+                            <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/45">
+                                Motif de suspension
+                            </span>
+                            <textarea
+                                value={suspensionReason}
+                                onChange={(event) => setSuspensionReason(event.target.value)}
+                                maxLength={500}
+                                rows={4}
+                                className="w-full resize-none rounded-2xl border border-borderGlass bg-obsidian/70 px-4 py-3 text-sm text-white outline-none transition-colors placeholder:text-white/30 focus:border-amber-400/50"
+                                placeholder="Ex: Informations insuffisantes, contenu non conforme..."
+                            />
+                        </label>
+
+                        <p className="mt-2 text-xs text-white/40">
+                            Optionnel. Si vous reactivez l'offre, ce motif sera efface automatiquement.
+                        </p>
+
+                        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                            <button
+                                type="button"
+                                onClick={closeSuspensionDialog}
+                                disabled={suspensionBusy}
+                                className="rounded-full border border-borderGlass bg-white/5 px-5 py-2.5 text-sm font-semibold text-white/75 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={suspensionBusy}
+                                className="rounded-full border border-amber-400/35 bg-amber-500/20 px-5 py-2.5 text-sm font-semibold text-amber-100 transition-colors hover:bg-amber-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {suspensionBusy ? 'Suspension...' : 'Confirmer la suspension'}
+                            </button>
+                        </div>
+                    </motion.form>
+                </div>
+            )}
         </motion.div>
     );
 }

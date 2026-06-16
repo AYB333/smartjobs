@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\ApplicationMessageController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OffreController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PostulationController;
@@ -19,6 +21,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::patch('/auth/me', [AuthController::class, 'updateMe']);
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+    Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead']);
+    Route::get('/postulations/{application}/messages', [ApplicationMessageController::class, 'index']);
+    Route::post('/postulations/{application}/messages', [ApplicationMessageController::class, 'store']);
 });
 
 Route::get('/user', function (Request $request) {

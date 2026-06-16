@@ -43,7 +43,7 @@
 
 A candidate can:
 - Register and log in.
-- Complete profile information: city, experience, target position.
+- Complete profile information: city, experience, target position, availability, and preferred contract.
 - Upload a CV PDF and optional profile photo.
 - Browse and filter job offers.
 - Apply to an offer using the CV already stored in the candidate profile.
@@ -91,7 +91,7 @@ Font:      Inter
 
 **Frontend UX features:**
 - Dark/light mode toggle saved in localStorage.
-- FR/EN/AR language switcher with RTL support.
+- FR/EN/AR i18n resources exist, but the visible language switcher is hidden for soutenance so the demo remains in French.
 - Command palette with Ctrl+K.
 - Toast notifications.
 - Lazy-loaded routes with React.lazy.
@@ -115,6 +115,7 @@ users
 candidat_profiles
   id, user_id,
   ville, experience, poste_recherche,
+  disponibilite, contrat_prefere,
   cv_path, photo_path,
   timestamps
 
@@ -127,7 +128,7 @@ job_offers
   id, recruteur_id,
   titre_poste, description, ville,
   salaire, type_contrat, duree_validite,
-  expires_at, status, image_path,
+  expires_at, status, suspension_reason, image_path,
   timestamps
 
 quizzes
@@ -150,6 +151,16 @@ saved_job_offers
   id, user_id, job_offer_id,
   timestamps
   unique(user_id, job_offer_id)
+
+user_notifications
+  id, user_id,
+  type, title, message, data, read_at,
+  timestamps
+
+application_messages
+  id, application_id, sender_id,
+  message, read_at,
+  timestamps
 
 payments
   id, recruteur_id,
@@ -188,6 +199,11 @@ These rules should not be broken.
    - If there is a quiz, frontend redirects to `/candidat/quiz/{offer_id}`.
    - `submitQuiz()` updates the existing application with `quiz_score`.
 
+6. **Accepted application discussion**
+   - Discussion is available only after a candidature is accepted.
+   - Only the accepted candidate and the recruiter who owns the offer can read/send messages.
+   - Chat messages are simple in-app messages, not realtime WebSocket chat.
+
 ---
 
 ## 7. API Endpoints
@@ -209,6 +225,12 @@ POST /api/payment/webhook
 GET   /api/auth/me
 POST  /api/auth/logout
 PATCH /api/auth/me
+GET   /api/notifications
+GET   /api/notifications/unread-count
+PATCH /api/notifications/{id}/read
+PATCH /api/notifications/read-all
+GET   /api/postulations/{id}/messages
+POST  /api/postulations/{id}/messages
 ```
 
 ### Candidat
@@ -251,6 +273,8 @@ GET   /api/admin/stats
 GET   /api/admin/users
 PATCH /api/admin/offers/{id}/status
 ```
+
+`PATCH /api/admin/offers/{id}/status` accepts `status=active|suspended`. When suspending, admin can send optional `suspension_reason`; when activating again, the reason is cleared.
 
 ---
 
@@ -353,7 +377,6 @@ Voir les offres -> /jobs
 Inscription -> /auth?mode=register
 Connexion -> /auth
 Theme toggle
-Language switcher
 Command palette
 ```
 
@@ -362,7 +385,7 @@ Command palette
 ```txt
 Principale -> /candidat/dashboard
 Voir les offres -> /jobs
-Mes candidatures -> /candidat/dashboard
+Mes candidatures -> /candidat/dashboard#mes-candidatures
 User/avatar pill -> /candidat/profile, uses profile photo when available
 Deconnexion
 ```
@@ -464,12 +487,15 @@ Important: Auth behavior was not changed during UI polish.
 Candidate dashboard includes:
 - Professional candidate home page inspired by job platforms.
 - Welcome panel with horizontal candidate photo/initials greeting and profile completion widget.
-- Recommended offers derived from existing `/api/offres` data using city and target position, displayed as compact image-based cards with establishment placeholders.
+- Recommended offers derived from existing `/api/offres` data using city, target position, preferred contract, and profile data, displayed as compact image-based cards with establishment placeholders.
+- Recommended offer cards explain why an offer fits: city match, target position match, preferred contract, or high matching score.
 - Saved offers preview from `/api/saved-offers`, so candidates can return to favorite opportunities quickly.
 - Recent applications table with city, status, quiz score, date, and offer action.
 - Compact application timeline in each recent application row: application sent, quiz state, recruiter decision.
+- Accepted applications show a `Discussion` action so candidate and recruiter can exchange simple messages.
 - One next-action card only: complete profile, add CV, pass pending quiz, or explore jobs.
 - Candidate notification card highlights missing profile/CV, pending quiz, and accepted/refused applications.
+- Navbar notification bell uses backend unread count, dropdown list, read item, and read-all actions.
 - Clean summary rows for sent, pending, accepted, and rejected applications.
 - Empty states with clear CTA.
 - Job detail readiness indicators: `Profil complete` and `CV ajoute`.
@@ -487,6 +513,7 @@ Candidate profile page `/candidat/profile` is now a guided profile builder:
 - `ville` uses Moroccan city choices: Casablanca, Rabat, Marrakech, Agadir, Fes, Tanger, Meknes, Oujda, Tetouan, El Jadida.
 - `experience` uses predefined ranges.
 - `poste_recherche` uses CHR job choices.
+- `disponibilite` and `contrat_prefere` use controlled choices and improve recommendations.
 - Existing free-text saved values are preserved by adding them safely to select options if they do not match the predefined choices.
 - Frontend profile mapping accepts `candidatProfile`, `candidat_profile`, and `profile`, plus `cv_path/cv_url` and `photo_path/photo_url`, so refresh keeps saved values visible.
 - CV PDF upload remains max 2MB and is reused automatically for applications.
@@ -526,6 +553,7 @@ Recruiter candidatures page includes:
 - Candidate cards include a frontend review score to rank stronger profiles first using quiz score, city, target position, and experience when available.
 - CV action uses existing stored CV paths/URLs and does not change backend download logic.
 - Status updates keep using `PATCH /api/postulations/{id}/status`.
+- Accepted candidates show a `Discussion` action with the same accepted-only chat session used by candidates.
 - Empty states guide the recruiter to create an offer or reset filters.
 
 ### Recruiter offer quality
@@ -545,7 +573,7 @@ Admin dashboard includes:
   - Utilisateurs
 - Offers table with search and status filter.
 - Users table with search and role filter.
-- Offer status actions: activate/suspend.
+- Offer status actions: activate/suspend; suspension can include an optional moderation reason shown in the admin table.
 - Lightweight analytics bars for offer statuses and user role distribution.
 
 ### Shared app shell
@@ -553,8 +581,8 @@ Admin dashboard includes:
 Navbar includes:
 - Search/command palette entry.
 - Theme toggle.
-- Language selector.
-- Notification bell for authenticated users.
+- Language switcher is hidden for soutenance; the app stays in French.
+- Notification bell for authenticated users with backend unread count, dropdown, and read/read-all behavior.
 - Candidate user pill opens `/candidat/profile` and uses profile photo when available.
 
 ---
@@ -704,6 +732,9 @@ Demo data:
 - Quiz creation and quiz submission.
 - Premium subscription through Stripe test mode.
 - Admin stats/users/moderation endpoints.
+- Admin offer suspension reasons with automatic clearing on reactivation.
+- In-app notifications for application received, application accepted/refused, and new matching offers.
+- Accepted-only application discussion messages between recruiter and candidate.
 - Scheduler tasks for expiration and quota reset.
 
 ### Main frontend flows implemented
@@ -715,11 +746,13 @@ Demo data:
 - Optional offer image upload with preview in create/edit offer form.
 - Offer quality score in recruiter offer form.
 - Admin dashboard with tabs and filters.
+- Admin offer moderation reason modal.
 - Admin lightweight analytics cards.
 - Dark/light mode.
-- FR/EN/AR i18n and RTL support.
+- FR/EN/AR i18n resources kept; visible switcher hidden for soutenance and demo language locked to French.
 - Command palette.
-- Toast notifications and navbar notification badge.
+- Toast notifications and real backend notification bell.
+- Accepted application chat modal for candidate and recruiter.
 - Responsive navbar.
 
 ### Verification
@@ -737,12 +770,15 @@ All passed during the latest development cycle.
 Current backend feature coverage includes:
 - Candidate application without quiz reuses saved profile CV.
 - Candidate application with quiz creates the application first, then quiz submission updates `quiz_score`.
+- Candidate cannot open a quiz directly before applying to the offer.
 - Duplicate application returns HTTP 409 and remains a single database row.
 - Candidate without CV cannot apply.
 - Recruiter can accept/refuse own applications and cannot update another recruiter's application.
-- Admin can suspend/activate offers; suspended offers are hidden from the public active offers endpoint.
+- Admin can suspend/activate offers with optional suspension reasons; suspended offers are hidden from the public active offers endpoint and reasons are cleared on reactivation.
 - Role guards block candidate access to recruiter APIs and recruiter access to admin APIs.
 - Candidate can save and unsave active offers.
+- Notification endpoints support unread count, listing, marking one notification read, and marking all read.
+- Accepted application chat allows only the candidate and owning recruiter to read/send messages.
 
 Latest full pass:
 
@@ -752,7 +788,7 @@ npm run build
 php artisan test
 ```
 
-All passed. Backend test suite currently reports 10 tests and 49 assertions.
+All passed. Backend test suite currently reports 13 tests and 78 assertions.
 
 ---
 
@@ -761,7 +797,8 @@ All passed. Backend test suite currently reports 10 tests and 49 assertions.
 Current limitations:
 - Stripe is in test mode.
 - No real Moroccan payment gateway integration yet.
-- No email notification system.
+- In-app notifications are implemented, but there is no email notification system.
+- Chat is accepted-only and request/response based, not realtime WebSocket chat.
 - Quiz system is basic QCM: no timer, no randomization.
 - Admin dashboard has lightweight analytics, not advanced charts.
 - Search uses existing API filtering/basic database search, not a dedicated search engine.
@@ -828,6 +865,7 @@ Post-deploy checklist:
 | Issue | Fix |
 | --- | --- |
 | Quiz flow blocked application | Application is created first; quiz updates existing application |
+| Direct quiz URL could load before application | Quiz access now requires an existing application and shows a clear return action |
 | Quota incremented on refresh | Quota now increments only once per unique candidate profile per day |
 | Axios used hardcoded localhost | API base URL moved to `VITE_API_URL` |
 | Navbar overlap | Responsive navbar breakpoints and mobile menu improved |
@@ -846,6 +884,16 @@ Post-deploy checklist:
 | Save offer UI appeared for non-candidates | Job cards now hide save actions unless the logged-in user is a candidate |
 | Non-candidate users could see an apply-style job detail CTA | Job detail now shows a disabled candidate-account requirement for recruiter/admin users |
 | Malformed salary or quiz values could display `NaN` labels | Salary averages/cards and recruiter review score now guard non-numeric values |
+| Admin moderation tables showed raw database column labels | Replaced table headers with user-friendly French labels |
+| Suspended/expired job detail could still expose apply/save actions | Job detail now disables application for unavailable offers and only lets candidates unsave existing favorites |
+| Notification bell was frontend-estimated only | Added backend notifications with unread count, dropdown, read/read-all, and automatic application/status/new-offer messages |
+| Candidate recommendations did not explain why an offer matched | Added visible matching reasons on recommended, jobs, and job-detail cards |
+| Candidate profile lacked availability and preferred contract | Added controlled profile choices and used preferred contract in matching |
+| Accepted candidates had no direct follow-up space | Added a simple accepted-only discussion modal for candidate and recruiter |
+| Login showed forgot-password text without a reset flow | Removed the visible placeholder from the auth UI for soutenance |
+| Candidate `Mes candidatures` opened dashboard without focusing applications | It now links to `/candidat/dashboard#mes-candidatures` and scrolls/focuses the applications section |
+| Partial language switcher exposed incomplete translations | Visible switcher is hidden and the demo stays in French while i18n files remain intact |
+| Salary filter MAD badge could feel cramped | Added no-shrink badge spacing and tighter salary field layout |
 
 ---
 

@@ -18,6 +18,14 @@ class QuizAttemptController extends Controller
     {
         JobOffer::findOrFail($offerId);
 
+        $application = Application::where('job_offer_id', $offerId)
+            ->where('candidat_id', Auth::id())
+            ->first();
+
+        if (! $application) {
+            return response()->json(['success' => false, 'message' => 'Commencez par postuler d abord.'], 403);
+        }
+
         $quiz = Quiz::with(['questions' => function ($query) {
             $query->select('id', 'quiz_id', 'question_text', 'options'); // Do NOT retrieve correct_answer!
         }])->where('job_offer_id', $offerId)->first();

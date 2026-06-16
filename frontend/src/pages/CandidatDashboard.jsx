@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
     ArrowRight,
     Bell,
@@ -11,12 +11,15 @@ import {
     FileText,
     Hotel,
     MapPin,
+    MessageCircle,
     ShieldCheck,
     UtensilsCrossed,
 } from 'lucide-react';
+import ApplicationChat from '../components/ApplicationChat';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
 import { extractSavedOffers } from '../utils/savedJobs';
+import { getMatchReasons } from '../utils/matching';
 
 const itemVariants = {
     hidden: { opacity: 0, y: 14 },
@@ -167,6 +170,8 @@ function getCandidateProfile(user) {
         cv_url: profile?.cv_url ?? profile?.cvUrl ?? '',
         photo_path: profile?.photo_path ?? profile?.photoPath ?? '',
         photo_url: profile?.photo_url ?? profile?.photoUrl ?? '',
+        disponibilite: profile?.disponibilite ?? '',
+        contrat_prefere: profile?.contrat_prefere ?? profile?.contratPrefere ?? '',
     };
 }
 
@@ -233,6 +238,8 @@ function getCompletionState(user) {
         { key: 'ville', label: 'Ville', value: profile?.ville },
         { key: 'experience', label: 'Expérience', value: profile?.experience },
         { key: 'poste_recherche', label: 'Poste recherché', value: profile?.poste_recherche },
+        { key: 'disponibilite', label: 'Disponibilité', value: profile?.disponibilite },
+        { key: 'contrat_prefere', label: 'Contrat préféré', value: profile?.contrat_prefere },
         { key: 'cv_path', label: 'CV', value: profile?.cv_path || profile?.cv_url },
     ];
     const completed = items.filter((item) => item.value !== null && item.value !== undefined && String(item.value).trim() !== '').length;
@@ -244,6 +251,7 @@ function getCompletionState(user) {
         missing,
         percent: Math.round((completed / items.length) * 100),
         hasCoreProfile: Boolean(profile?.ville && profile?.experience && profile?.poste_recherche),
+        hasPreferences: Boolean(profile?.disponibilite && profile?.contrat_prefere),
         hasCv: Boolean(profile?.cv_path || profile?.cv_url),
         isComplete: missing.length === 0,
     };
@@ -255,6 +263,8 @@ function scoreOfferForProfile(offer, profile) {
     const profileCity = normalize(profile?.ville);
     const offerTitle = normalize(offer?.titre_poste);
     const wantedPosition = normalize(profile?.poste_recherche);
+    const offerContract = normalize(offer?.type_contrat);
+    const preferredContract = normalize(profile?.contrat_prefere);
 
     if (offerCity && profileCity && offerCity === profileCity) {
         score += 45;
@@ -272,6 +282,10 @@ function scoreOfferForProfile(offer, profile) {
 
     if (hasOfferQuiz(offer)) {
         score += 3;
+    }
+
+    if (offerContract && preferredContract && offerContract === preferredContract) {
+        score += 10;
     }
 
     return score;
@@ -302,6 +316,10 @@ async function fetchRecommendationPool(profile) {
         requests.push(api.get('/offres', { params: { search: profile.poste_recherche, limit: 12 } }));
     }
 
+    if (profile?.contrat_prefere) {
+        requests.push(api.get('/offres', { params: { type_contrat: profile.contrat_prefere, limit: 12 } }));
+    }
+
     const responses = await Promise.allSettled(requests);
     return uniqueOffers(
         responses.flatMap((response) => (
@@ -312,10 +330,11 @@ async function fetchRecommendationPool(profile) {
     );
 }
 
-function RecommendedJobCard({ offer }) {
+function RecommendedJobCard({ offer, profile }) {
     const hasQuiz = hasOfferQuiz(offer);
     const typeMeta = getEstablishmentTypeMeta(offer);
     const PlaceholderIcon = typeMeta.Icon;
+    const matchReasons = getMatchReasons(offer, profile);
 
     return (
         <article className="group overflow-hidden rounded-2xl border border-borderGlass bg-white/5 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-accent/35 hover:shadow-[0_16px_42px_rgba(232,101,26,0.10)]">
@@ -367,6 +386,16 @@ function RecommendedJobCard({ offer }) {
                     </span>
                 )}
             </div>
+
+            {matchReasons.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                    {matchReasons.map((reason) => (
+                        <span key={reason} className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-200">
+                            {reason}
+                        </span>
+                    ))}
+                </div>
+            )}
         </article>
     );
 }
@@ -460,10 +489,12 @@ function getCandidateNotifications(applications, completion) {
 }
 
 export default function CandidatDashboard() {
+    const location = useLocation();
     const [applications, setApplications] = useState([]);
     const [offerPool, setOfferPool] = useState([]);
     const [savedOffers, setSavedOffers] = useState([]);
     const [currentUser, setCurrentUser] = useState(() => parseStoredUser());
+    const [chatApplication, setChatApplication] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -510,6 +541,22 @@ export default function CandidatDashboard() {
         return () => window.clearTimeout(timeoutId);
     }, [loadDashboard]);
 
+    useEffect(() => {
+        if (location.hash !== '#mes-candidatures') {
+            return undefined;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            const target = document.getElementById('mes-candidatures');
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                target.focus({ preventScroll: true });
+            }
+        }, 120);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [location.hash, loading]);
+
     const completion = useMemo(() => getCompletionState(currentUser), [currentUser]);
     const firstName = currentUser?.name?.split(' ')?.[0] || currentUser?.name || 'candidat';
     const avatarInitials = getInitials(currentUser?.name);
@@ -550,6 +597,15 @@ export default function CandidatDashboard() {
             };
         }
 
+        if (!completion.hasPreferences) {
+            return {
+                title: 'Ajoutez vos préférences',
+                description: 'La disponibilité et le contrat préféré améliorent la qualité des recommandations.',
+                label: 'Compléter mon profil',
+                to: '/candidat/profile',
+            };
+        }
+
         if (!completion.hasCv) {
             return {
                 title: 'Ajoutez votre CV',
@@ -576,7 +632,7 @@ export default function CandidatDashboard() {
             label: 'Voir les offres',
             to: '/jobs',
         };
-    }, [completion.hasCoreProfile, completion.hasCv, pendingQuizOffer, pendingQuizOfferId]);
+    }, [completion.hasCoreProfile, completion.hasCv, completion.hasPreferences, pendingQuizOffer, pendingQuizOfferId]);
 
     const appliedOfferIds = useMemo(() => new Set(
         applications
@@ -693,8 +749,10 @@ export default function CandidatDashboard() {
                         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
                             <section className="space-y-6">
                                 <motion.section
+                                    id="mes-candidatures"
+                                    tabIndex={-1}
                                     variants={itemVariants}
-                                    className="rounded-3xl border border-borderGlass bg-surface p-5 shadow-[0_18px_55px_rgba(0,0,0,0.12)] md:p-6"
+                                    className="scroll-mt-28 rounded-3xl border border-borderGlass bg-surface p-5 shadow-[0_18px_55px_rgba(0,0,0,0.12)] outline-none transition-shadow focus-visible:shadow-[0_0_0_3px_rgba(232,101,26,0.28),0_18px_55px_rgba(0,0,0,0.12)] md:p-6"
                                 >
                                     <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                                         <div>
@@ -738,7 +796,7 @@ export default function CandidatDashboard() {
                                     ) : (
                                         <div className="grid gap-3">
                                             {recommendedOffers.map((offer) => (
-                                                <RecommendedJobCard key={offer.id} offer={offer} />
+                                                <RecommendedJobCard key={offer.id} offer={offer} profile={completion.profile} />
                                             ))}
                                         </div>
                                     )}
@@ -773,7 +831,7 @@ export default function CandidatDashboard() {
                                     ) : (
                                         <div className="grid gap-3">
                                             {savedOffersPreview.map((offer) => (
-                                                <RecommendedJobCard key={offer.id} offer={offer} />
+                                                <RecommendedJobCard key={offer.id} offer={offer} profile={completion.profile} />
                                             ))}
                                         </div>
                                     )}
@@ -865,6 +923,16 @@ export default function CandidatDashboard() {
                                                                             >
                                                                                 Voir offre
                                                                             </Link>
+                                                                        )}
+                                                                        {application.status === 'acceptee' && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => setChatApplication(application)}
+                                                                                className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/20"
+                                                                            >
+                                                                                <MessageCircle size={13} />
+                                                                                Discussion
+                                                                            </button>
                                                                         )}
                                                                     </div>
                                                                 </td>
@@ -973,6 +1041,13 @@ export default function CandidatDashboard() {
                     </motion.div>
                 )}
             </main>
+
+            {chatApplication && (
+                <ApplicationChat
+                    application={chatApplication}
+                    onClose={() => setChatApplication(null)}
+                />
+            )}
         </motion.div>
     );
 }

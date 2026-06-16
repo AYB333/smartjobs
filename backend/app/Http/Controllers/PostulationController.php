@@ -7,6 +7,7 @@ use App\Http\Requests\UpdatePostulationStatusRequest;
 use App\Models\Application;
 use App\Models\JobOffer;
 use App\Models\User;
+use App\Models\UserNotification;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -57,6 +58,19 @@ class PostulationController extends Controller
             'candidat_id' => $candidat_id,
             'cv_path' => $profile->cv_path,
             'status' => 'en_attente',
+        ]);
+
+        UserNotification::create([
+            'user_id' => $offre->recruteur_id,
+            'type' => 'application_received',
+            'title' => 'Nouvelle candidature recue',
+            'message' => sprintf('%s a postule a votre offre "%s".', $user?->name ?? 'Un candidat', $offre->titre_poste),
+            'data' => [
+                'application_id' => $application->id,
+                'offer_id' => $offre->id,
+                'candidate_id' => $candidat_id,
+                'action_url' => '/recruteur/candidatures',
+            ],
         ]);
 
         return response()->json([
@@ -134,6 +148,23 @@ class PostulationController extends Controller
 
         $application->update([
             'status' => $request->status,
+        ]);
+
+        $isAccepted = $request->status === 'acceptee';
+
+        UserNotification::create([
+            'user_id' => $application->candidat_id,
+            'type' => $isAccepted ? 'application_accepted' : 'application_refused',
+            'title' => $isAccepted ? 'Candidature acceptee' : 'Candidature refusee',
+            'message' => $isAccepted
+                ? 'Votre candidature a ete acceptee. Le recruteur peut maintenant vous contacter.'
+                : 'Votre candidature n a pas ete retenue pour cette offre. Continuez a postuler a d autres opportunites.',
+            'data' => [
+                'application_id' => $application->id,
+                'offer_id' => $application->job_offer_id,
+                'status' => $request->status,
+                'action_url' => '/candidat/dashboard',
+            ],
         ]);
 
         return response()->json([

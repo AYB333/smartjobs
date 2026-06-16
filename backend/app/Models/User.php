@@ -73,4 +73,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(SavedJobOffer::class);
     }
+
+    public function smartNotifications(): HasMany
+    {
+        return $this->hasMany(UserNotification::class);
+    }
+
+    public function sentApplicationMessages(): HasMany
+    {
+        return $this->hasMany(ApplicationMessage::class, 'sender_id');
+    }
 }

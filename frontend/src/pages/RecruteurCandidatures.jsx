@@ -9,6 +9,7 @@ import {
     Download,
     FileText,
     MapPin,
+    MessageCircle,
     RotateCcw,
     Search,
     ShieldCheck,
@@ -16,6 +17,7 @@ import {
     UserRound,
     X,
 } from 'lucide-react';
+import ApplicationChat from '../components/ApplicationChat';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
 import { useToast } from '../context/useAppExperience';
@@ -203,6 +205,7 @@ export default function RecruteurCandidatures() {
     const [quizFilter, setQuizFilter] = useState('all');
     const [loading, setLoading] = useState(true);
     const [updatingId, setUpdatingId] = useState(null);
+    const [chatApplication, setChatApplication] = useState(null);
     const [error, setError] = useState('');
 
     const backendBase = useMemo(() => getBackendBaseUrl(), []);
@@ -637,6 +640,17 @@ export default function RecruteurCandidatures() {
                                                         </button>
                                                     </div>
 
+                                                    {isAccepted && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setChatApplication(application)}
+                                                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/20"
+                                                        >
+                                                            <MessageCircle size={15} />
+                                                            Discussion
+                                                        </button>
+                                                    )}
+
                                                     {offerId && (
                                                         <Link
                                                             to={`/jobs/${offerId}`}
@@ -656,6 +670,13 @@ export default function RecruteurCandidatures() {
                     </motion.section>
                 </motion.div>
             </main>
+
+            {chatApplication && (
+                <ApplicationChat
+                    application={chatApplication}
+                    onClose={() => setChatApplication(null)}
+                />
+            )}
         </motion.div>
     );
 }

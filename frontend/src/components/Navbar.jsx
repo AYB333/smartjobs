@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Languages, Menu, Moon, Search, Sun, X } from 'lucide-react';
+import { Bell, CheckCheck, Menu, Moon, Search, Sun, X } from 'lucide-react';
 import { useAppExperience } from '../context/useAppExperience';
 import api from '../api/axios';
 
@@ -43,31 +43,18 @@ function getProfilePhotoUrl(user) {
     return buildStorageUrl(getBackendBaseUrl(), profile?.photo_url || profile?.photo_path);
 }
 
-function extractList(payload) {
+function extractNotifications(payload) {
     const source = payload?.data;
     if (Array.isArray(source?.data)) return source.data;
     if (Array.isArray(source)) return source;
     return [];
 }
 
-function getOfferFromApplication(application) {
-    return application?.jobOffer ?? application?.job_offer ?? {};
-}
-
-function hasOfferQuiz(offer) {
-    return Boolean(offer?.quiz || offer?.quiz_exists);
-}
-
-function getApplicationsCount(offer) {
-    if (typeof offer?.applications_count === 'number') {
-        return offer.applications_count;
-    }
-
-    if (Array.isArray(offer?.applications)) {
-        return offer.applications.length;
-    }
-
-    return 0;
+function formatNotificationDate(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
 }
 
 function getInitials(name) {
@@ -141,7 +128,7 @@ function getRoleCta(role, isAuthenticated, t) {
     }
 
     if (role === 'candidat') {
-        return { label: t('nav.applications'), to: '/candidat/dashboard', accent: true };
+        return { label: t('nav.applications'), to: '/candidat/dashboard#mes-candidatures', accent: true };
     }
 
     return { label: t('nav.admin'), to: '/admin/dashboard', accent: true };
@@ -151,7 +138,10 @@ export default function Navbar() {
     const [menuOpen, setMenuOpen] = useState(false);
     const [currentUser, setCurrentUser] = useState(() => parseStoredUser());
     const [notificationCount, setNotificationCount] = useState(0);
-    const { language, languages, setLanguage, t, theme, toggleTheme } = useAppExperience();
+    const [notificationOpen, setNotificationOpen] = useState(false);
+    const [notifications, setNotifications] = useState([]);
+    const [notificationsLoading, setNotificationsLoading] = useState(false);
+    const { t, theme, toggleTheme } = useAppExperience();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -159,6 +149,7 @@ export default function Navbar() {
         const timeoutId = window.setTimeout(() => {
             setCurrentUser(parseStoredUser());
             setMenuOpen(false);
+            setNotificationOpen(false);
         }, 0);
 
         return () => window.clearTimeout(timeoutId);
@@ -174,6 +165,8 @@ export default function Navbar() {
         if (!currentUser) {
             const timeoutId = window.setTimeout(() => {
                 setNotificationCount(0);
+                setNotifications([]);
+                setNotificationOpen(false);
             }, 0);
 
             return () => window.clearTimeout(timeoutId);
@@ -181,30 +174,8 @@ export default function Navbar() {
 
         const timeoutId = window.setTimeout(async () => {
             try {
-                if (currentUser.role === 'candidat') {
-                    const response = await api.get('/mes-postulations', { params: { limit: 100 } });
-                    const applications = extractList(response?.data);
-                    const count = applications.filter((application) => {
-                        const offer = getOfferFromApplication(application);
-                        return (application.quiz_score === null && hasOfferQuiz(offer))
-                            || application.status === 'acceptee'
-                            || application.status === 'refusee';
-                    }).length;
-                    setNotificationCount(count);
-                    return;
-                }
-
-                if (currentUser.role === 'recruteur') {
-                    const response = await api.get('/mes-offres');
-                    const offers = extractList(response?.data);
-                    setNotificationCount(offers.reduce((total, offer) => total + getApplicationsCount(offer), 0));
-                    return;
-                }
-
-                if (currentUser.role === 'admin') {
-                    const response = await api.get('/admin/stats');
-                    setNotificationCount(Number(response?.data?.data?.total_offres_all ?? 0));
-                }
+                const response = await api.get('/notifications/unread-count');
+                setNotificationCount(Number(response?.data?.unread_count ?? 0));
             } catch {
                 setNotificationCount(0);
             }
@@ -242,6 +213,72 @@ export default function Navbar() {
 
     const openCommandPalette = () => {
         window.dispatchEvent(new Event('smartjobs:open-command'));
+    };
+
+    const focusCandidateApplications = () => {
+        window.setTimeout(() => {
+            const target = document.getElementById('mes-candidatures');
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                target.focus({ preventScroll: true });
+            }
+        }, 0);
+    };
+
+    const handleRoleCtaClick = () => {
+        if (role === 'candidat' && location.pathname === '/candidat/dashboard') {
+            focusCandidateApplications();
+        }
+    };
+
+    const loadNotifications = async () => {
+        setNotificationsLoading(true);
+
+        try {
+            const response = await api.get('/notifications', { params: { limit: 12 } });
+            setNotifications(extractNotifications(response?.data));
+            setNotificationCount(Number(response?.data?.unread_count ?? 0));
+        } catch {
+            setNotifications([]);
+        } finally {
+            setNotificationsLoading(false);
+        }
+    };
+
+    const toggleNotifications = async () => {
+        const shouldOpen = !notificationOpen;
+        setNotificationOpen(shouldOpen);
+
+        if (shouldOpen) {
+            await loadNotifications();
+        }
+    };
+
+    const openNotification = async (notification) => {
+        if (!notification?.read_at) {
+            try {
+                const response = await api.patch(`/notifications/${notification.id}/read`);
+                setNotificationCount(Number(response?.data?.unread_count ?? Math.max(notificationCount - 1, 0)));
+                setNotifications((previous) => previous.map((item) => (
+                    item.id === notification.id ? { ...item, read_at: response?.data?.data?.read_at || new Date().toISOString() } : item
+                )));
+            } catch {
+                // Keep navigation available even if read sync fails.
+            }
+        }
+
+        setNotificationOpen(false);
+        navigate(notification?.data?.action_url || notificationPath);
+    };
+
+    const markAllNotificationsRead = async () => {
+        try {
+            await api.patch('/notifications/read-all');
+            setNotificationCount(0);
+            setNotifications((previous) => previous.map((item) => ({ ...item, read_at: item.read_at || new Date().toISOString() })));
+        } catch {
+            // Non-blocking UI action.
+        }
     };
 
     const navLinkClass = 'text-sm font-medium tracking-[0.02em] text-white/70 hover:text-white transition-colors relative group whitespace-nowrap';
@@ -291,38 +328,79 @@ export default function Navbar() {
                             <ThemeIcon size={17} />
                         </button>
 
-                        <div className="hidden lg:flex h-10 items-center gap-2 rounded-full border border-borderGlass bg-surface px-3 text-white/80">
-                            <Languages size={16} className="text-accent" />
-                            <select
-                                value={language}
-                                onChange={(event) => setLanguage(event.target.value)}
-                                className="bg-transparent text-sm font-semibold text-white outline-none"
-                                aria-label={t('toolbar.language')}
-                            >
-                                {Object.values(languages).map((item) => (
-                                    <option key={item.code} value={item.code} className="bg-deepNavy text-white">
-                                        {item.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
                         {isAuthenticated && (
-                            <Link
-                                to={notificationPath}
-                                className={utilityButtonClass}
-                                aria-label="Notifications"
-                                title={`${notificationCount} notification${notificationCount > 1 ? 's' : ''}`}
-                            >
-                                <span className="relative inline-flex">
-                                    <Bell size={17} />
-                                    {notificationCount > 0 && (
-                                        <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-white">
-                                            {notificationCount > 9 ? '9+' : notificationCount}
-                                        </span>
+                            <div className="relative hidden lg:block">
+                                <button
+                                    type="button"
+                                    onClick={toggleNotifications}
+                                    className={utilityButtonClass.replace('hidden lg:inline-flex', 'inline-flex')}
+                                    aria-label="Notifications"
+                                    title={`${notificationCount} notification${notificationCount > 1 ? 's' : ''}`}
+                                >
+                                    <span className="relative inline-flex">
+                                        <Bell size={17} />
+                                        {notificationCount > 0 && (
+                                            <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-white">
+                                                {notificationCount > 9 ? '9+' : notificationCount}
+                                            </span>
+                                        )}
+                                    </span>
+                                </button>
+
+                                <AnimatePresence>
+                                    {notificationOpen && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                                            className="absolute right-0 top-12 z-[80] w-[360px] overflow-hidden rounded-2xl border border-borderGlass bg-deepNavy/95 shadow-[0_24px_70px_rgba(0,0,0,0.35)] backdrop-blur-xl"
+                                        >
+                                            <div className="flex items-center justify-between gap-3 border-b border-borderGlass px-4 py-3">
+                                                <div>
+                                                    <p className="text-sm font-bold text-white">Notifications</p>
+                                                    <p className="text-xs text-white/45">{notificationCount} non lue{notificationCount > 1 ? 's' : ''}</p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={markAllNotificationsRead}
+                                                    className="inline-flex items-center gap-1.5 rounded-full border border-borderGlass bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/70 transition-colors hover:border-accent/45 hover:text-white"
+                                                >
+                                                    <CheckCheck size={13} />
+                                                    Tout lire
+                                                </button>
+                                            </div>
+
+                                            <div className="max-h-[360px] overflow-y-auto p-2">
+                                                {notificationsLoading ? (
+                                                    <p className="px-3 py-5 text-center text-sm text-white/50">Chargement...</p>
+                                                ) : notifications.length === 0 ? (
+                                                    <p className="px-3 py-5 text-center text-sm text-white/50">Aucune notification pour le moment.</p>
+                                                ) : (
+                                                    notifications.map((notification) => (
+                                                        <button
+                                                            key={notification.id}
+                                                            type="button"
+                                                            onClick={() => openNotification(notification)}
+                                                            className="block w-full rounded-xl px-3 py-3 text-left transition-colors hover:bg-white/10"
+                                                        >
+                                                            <div className="flex items-start gap-3">
+                                                                <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${notification.read_at ? 'bg-white/20' : 'bg-accent'}`} />
+                                                                <span className="min-w-0 flex-1">
+                                                                    <span className="flex items-start justify-between gap-3">
+                                                                        <span className="text-sm font-semibold text-white">{notification.title}</span>
+                                                                        <span className="shrink-0 text-[11px] text-white/35">{formatNotificationDate(notification.created_at)}</span>
+                                                                    </span>
+                                                                    <span className="mt-1 block text-xs leading-5 text-white/58">{notification.message}</span>
+                                                                </span>
+                                                            </div>
+                                                        </button>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </motion.div>
                                     )}
-                                </span>
-                            </Link>
+                                </AnimatePresence>
+                            </div>
                         )}
 
                         {isAuthenticated && (
@@ -345,6 +423,7 @@ export default function Navbar() {
 
                                 <Link
                                     to={roleCta.to}
+                                    onClick={handleRoleCtaClick}
                                     className={`hidden lg:inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold transition-all duration-300 ${
                                         roleCta.accent
                                             ? 'bg-accent text-white border border-accent/80 hover:bg-accent/90 shadow-[0_0_20px_rgba(232,101,26,0.22)]'
@@ -401,7 +480,7 @@ export default function Navbar() {
                             className="lg:hidden mt-4 rounded-2xl border border-borderGlass bg-deepNavy/90 backdrop-blur-xl p-4"
                         >
                             <div className="flex flex-col gap-3">
-                                <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 gap-2">
                                     <button
                                         type="button"
                                         onClick={openCommandPalette}
@@ -419,21 +498,6 @@ export default function Navbar() {
                                     >
                                         <ThemeIcon size={16} />
                                     </button>
-                                    <label className="inline-flex items-center justify-center gap-2 rounded-xl border border-borderGlass bg-white/5 px-3 py-2.5 text-white/85">
-                                        <Languages size={16} />
-                                        <select
-                                            value={language}
-                                            onChange={(event) => setLanguage(event.target.value)}
-                                            className="w-12 bg-transparent text-sm font-semibold outline-none"
-                                            aria-label={t('toolbar.language')}
-                                        >
-                                            {Object.values(languages).map((item) => (
-                                                <option key={item.code} value={item.code} className="bg-deepNavy text-white">
-                                                    {item.label}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </label>
                                 </div>
 
                                 {centerLinks.map((item) => (
@@ -446,6 +510,24 @@ export default function Navbar() {
                                         {item.label}
                                     </Link>
                                 ))}
+
+                                {isAuthenticated && (
+                                    <Link
+                                        to={notificationPath}
+                                        onClick={() => setMenuOpen(false)}
+                                        className="flex items-center justify-between rounded-xl px-3 py-2 text-white/85 transition-colors hover:bg-white/10"
+                                    >
+                                        <span className="inline-flex items-center gap-2">
+                                            <Bell size={16} />
+                                            Notifications
+                                        </span>
+                                        {notificationCount > 0 && (
+                                            <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-white">
+                                                {notificationCount > 9 ? '9+' : notificationCount}
+                                            </span>
+                                        )}
+                                    </Link>
+                                )}
 
                                 {isAuthenticated && (
                                     <>
@@ -467,7 +549,10 @@ export default function Navbar() {
 
                                         <Link
                                             to={roleCta.to}
-                                            onClick={() => setMenuOpen(false)}
+                                            onClick={() => {
+                                                setMenuOpen(false);
+                                                handleRoleCtaClick();
+                                            }}
                                             className="rounded-xl bg-accent px-3 py-2.5 text-sm font-semibold text-white hover:bg-accent/90 transition-colors"
                                         >
                                             {roleCta.label}

@@ -204,7 +204,6 @@ export default function Auth() {
                                 <div>
                                     <div className="flex justify-between items-center mb-2">
                                         <label className="auth-label block text-xs font-semibold text-white/50 uppercase tracking-wider">Mot de passe</label>
-                                        {isLogin && <span className="text-xs text-white/45">Mot de passe oublie</span>}
                                     </div>
                                     <div className="auth-input-shell relative group">
                                         <Lock className="auth-input-icon absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-accent transition-colors" size={18} />

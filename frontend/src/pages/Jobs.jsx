@@ -436,39 +436,39 @@ export default function Jobs() {
                                                         Salaire
                                                     </label>
                                                     <div className="grid gap-3">
-                                                        <label className="salary-filter-field block rounded-2xl border border-borderGlass bg-obsidian/60 px-4 py-3 transition-colors focus-within:border-accent/60 focus-within:bg-obsidian/70">
+                                                        <label className="salary-filter-field block rounded-2xl border border-borderGlass bg-obsidian/60 px-3.5 py-3 transition-colors focus-within:border-accent/60 focus-within:bg-obsidian/70">
                                                             <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-white/45">
                                                                 Salaire minimum
                                                             </span>
-                                                            <span className="flex items-center gap-2">
+                                                            <span className="flex min-w-0 items-center gap-3">
                                                                 <input
                                                                     type="number"
                                                                     min="0"
                                                                     placeholder="0"
                                                                     value={filters.salaireMin}
                                                                     onChange={(event) => setFilters((prev) => ({ ...prev, salaireMin: event.target.value }))}
-                                                                    className="min-w-0 flex-1 border-none bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/35"
+                                                                    className="w-full min-w-0 flex-1 border-none bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/35"
                                                                 />
-                                                                <span className="rounded-full border border-accent/25 bg-accent/10 px-2.5 py-1 text-[10px] font-bold tracking-wider text-accent">
+                                                                <span className="shrink-0 whitespace-nowrap rounded-full border border-accent/25 bg-accent/10 px-2.5 py-1 text-[10px] font-bold tracking-wider text-accent">
                                                                     MAD
                                                                 </span>
                                                             </span>
                                                         </label>
 
-                                                        <label className="salary-filter-field block rounded-2xl border border-borderGlass bg-obsidian/60 px-4 py-3 transition-colors focus-within:border-accent/60 focus-within:bg-obsidian/70">
+                                                        <label className="salary-filter-field block rounded-2xl border border-borderGlass bg-obsidian/60 px-3.5 py-3 transition-colors focus-within:border-accent/60 focus-within:bg-obsidian/70">
                                                             <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-white/45">
                                                                 Salaire maximum
                                                             </span>
-                                                            <span className="flex items-center gap-2">
+                                                            <span className="flex min-w-0 items-center gap-3">
                                                                 <input
                                                                     type="number"
                                                                     min="0"
                                                                     placeholder="9000"
                                                                     value={filters.salaireMax}
                                                                     onChange={(event) => setFilters((prev) => ({ ...prev, salaireMax: event.target.value }))}
-                                                                    className="min-w-0 flex-1 border-none bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/35"
+                                                                    className="w-full min-w-0 flex-1 border-none bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/35"
                                                                 />
-                                                                <span className="rounded-full border border-accent/25 bg-accent/10 px-2.5 py-1 text-[10px] font-bold tracking-wider text-accent">
+                                                                <span className="shrink-0 whitespace-nowrap rounded-full border border-accent/25 bg-accent/10 px-2.5 py-1 text-[10px] font-bold tracking-wider text-accent">
                                                                     MAD
                                                                 </span>
                                                             </span>

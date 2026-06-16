@@ -6,10 +6,12 @@ use App\Http\Requests\StoreOffreRequest;
 use App\Http\Requests\UpdateOffreRequest;
 use App\Models\JobOffer;
 use App\Models\User;
+use App\Models\UserNotification;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class OffreController extends Controller
 {
@@ -19,6 +21,60 @@ class OffreController extends Controller
         $user = $request->user('sanctum') ?? Auth::guard('sanctum')->user();
 
         return $user?->role === 'admin';
+    }
+
+    private function normalizeForMatch(?string $value): string
+    {
+        return Str::lower(Str::ascii(trim((string) $value)));
+    }
+
+    private function positionMatches(?string $offerTitle, ?string $wantedPosition): bool
+    {
+        $title = $this->normalizeForMatch($offerTitle);
+        $position = $this->normalizeForMatch($wantedPosition);
+
+        if ($title === '' || $position === '') {
+            return false;
+        }
+
+        if (str_contains($title, $position) || str_contains($position, $title)) {
+            return true;
+        }
+
+        $titleWords = array_filter(preg_split('/\s+/', $title) ?: [], fn ($word) => strlen($word) > 2);
+        $positionWords = array_filter(preg_split('/\s+/', $position) ?: [], fn ($word) => strlen($word) > 2);
+
+        return count(array_intersect($titleWords, $positionWords)) > 0;
+    }
+
+    private function notifyMatchingCandidates(JobOffer $offer): void
+    {
+        if ($offer->status !== 'active') {
+            return;
+        }
+
+        User::where('role', 'candidat')
+            ->whereHas('candidatProfile', function ($query) use ($offer) {
+                $query->where('ville', $offer->ville)
+                    ->whereNotNull('poste_recherche')
+                    ->where('poste_recherche', '!=', '');
+            })
+            ->with('candidatProfile')
+            ->limit(50)
+            ->get()
+            ->filter(fn (User $candidate) => $this->positionMatches($offer->titre_poste, $candidate->candidatProfile?->poste_recherche))
+            ->each(function (User $candidate) use ($offer) {
+                UserNotification::create([
+                    'user_id' => $candidate->id,
+                    'type' => 'new_matching_offer',
+                    'title' => 'Nouvelle offre proche de votre profil',
+                    'message' => sprintf('Une nouvelle offre a %s correspond a votre profil: %s.', $offer->ville, $offer->titre_poste),
+                    'data' => [
+                        'offer_id' => $offer->id,
+                        'action_url' => "/jobs/{$offer->id}",
+                    ],
+                ]);
+            });
     }
 
     /**
@@ -111,6 +167,7 @@ class OffreController extends Controller
         }
 
         $offre = JobOffer::create($validated);
+        $this->notifyMatchingCandidates($offre);
 
         return response()->json([
             'success' => true,

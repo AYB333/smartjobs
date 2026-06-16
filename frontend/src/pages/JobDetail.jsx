@@ -26,7 +26,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import api from '../api/axios';
 import { useToast } from '../context/useAppExperience';
-import { calculateMatchScore, getMatchTone } from '../utils/matching';
+import { calculateMatchScore, getMatchReasons, getMatchTone } from '../utils/matching';
 import { extractSavedOfferIds } from '../utils/savedJobs';
 
 function parseStoredUser() {
@@ -351,6 +351,7 @@ export default function JobDetail() {
     const currentProfile = currentUser?.candidatProfile ?? currentUser?.candidat_profile ?? currentUser?.profile ?? {};
     const matchScore = isCandidate ? calculateMatchScore(offer, currentProfile) : null;
     const matchTone = matchScore ? getMatchTone(matchScore) : null;
+    const matchReasons = isCandidate ? getMatchReasons(offer, currentProfile) : [];
     const isSaved = savedOfferIds.includes(Number(id));
     const existingApplication = useMemo(() => (
         applications.find((application) => String(getOfferIdFromApplication(application)) === String(id)) ?? null
@@ -371,6 +372,7 @@ export default function JobDetail() {
     );
     const hasCv = Boolean(currentProfile?.cv_path || currentProfile?.cv_url);
     const isReadyToApply = hasCompleteProfile && hasCv;
+    const isOfferAvailable = Boolean(offer && offer.status === 'active' && !countdown.expired);
     const readinessMessage = 'Completez votre profil avant de postuler.';
     const applicationAction = useMemo(() => {
         if (isRecruteur) {
@@ -378,6 +380,10 @@ export default function JobDetail() {
         }
 
         if (!isAuthenticated) {
+            if (offer && !isOfferAvailable) {
+                return { label: 'Offre indisponible', disabled: true, onClick: null };
+            }
+
             return {
                 label: 'Postuler maintenant',
                 disabled: false,
@@ -413,6 +419,10 @@ export default function JobDetail() {
             return { label: 'En attente de reponse', disabled: true, onClick: null };
         }
 
+        if (offer && !isOfferAvailable) {
+            return { label: 'Offre indisponible', disabled: true, onClick: null };
+        }
+
         if (!isReadyToApply) {
             return {
                 label: 'Completer mon profil',
@@ -429,12 +439,19 @@ export default function JobDetail() {
         id,
         isAuthenticated,
         isCandidate,
+        isOfferAvailable,
         isReadyToApply,
         isRecruteur,
         navigate,
+        offer,
     ]);
 
     const handleOpenPostuler = () => {
+        if (!isOfferAvailable) {
+            setSubmitError('Cette offre n est plus disponible.');
+            return;
+        }
+
         if (!isAuthenticated) {
             navigate('/auth', { replace: true });
             return;
@@ -466,6 +483,11 @@ export default function JobDetail() {
         event.preventDefault();
         setSubmitError('');
         setSuccessMessage('');
+
+        if (!isOfferAvailable) {
+            setSubmitError('Cette offre n est plus disponible.');
+            return;
+        }
 
         if (!isReadyToApply) {
             setSubmitError(readinessMessage);
@@ -529,6 +551,15 @@ export default function JobDetail() {
     const toggleSavedOffer = async () => {
         if (!isAuthenticated || !isCandidate) {
             navigate('/auth?role=candidat&mode=login');
+            return;
+        }
+
+        if (!isOfferAvailable && !isSaved) {
+            showToast({
+                type: 'error',
+                title: 'Favoris',
+                message: 'Cette offre ne peut pas etre sauvegardee.',
+            });
             return;
         }
 
@@ -735,6 +766,15 @@ export default function JobDetail() {
                                                     Match profil {matchScore}%
                                                 </div>
                                             )}
+                                            {matchReasons.length > 0 && (
+                                                <div className="flex flex-wrap gap-2">
+                                                    {matchReasons.map((reason) => (
+                                                        <span key={reason} className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-200">
+                                                            {reason}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
                                             <div className={`flex items-center gap-2 rounded-2xl border px-3 py-2.5 text-xs font-semibold ${
                                                 hasCompleteProfile
                                                     ? 'border-emerald-400/30 bg-emerald-500/10 text-emerald-200'
@@ -825,7 +865,7 @@ export default function JobDetail() {
                                         {applicationsLoading && isCandidate ? 'Verification...' : applicationAction.label}
                                     </button>
 
-                                    {isCandidate && (
+                                    {isCandidate && (isOfferAvailable || isSaved) && (
                                         <button
                                             type="button"
                                             onClick={toggleSavedOffer}

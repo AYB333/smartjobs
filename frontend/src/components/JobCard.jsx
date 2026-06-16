@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useI18n } from '../context/useAppExperience';
-import { calculateMatchScore, getMatchTone } from '../utils/matching';
+import { calculateMatchScore, getMatchReasons, getMatchTone } from '../utils/matching';
 
 const itemVariants = {
     hidden: { y: 28, opacity: 0 },
@@ -200,6 +200,7 @@ export default function JobCard({ job, variant = 'grid', isSaved = false, saving
     const applicationsCount = Number(job?.applications_count ?? 0);
     const matchScore = calculateMatchScore(job);
     const matchTone = matchScore ? getMatchTone(matchScore) : null;
+    const matchReasons = getMatchReasons(job);
     const establishmentName = getEstablishmentName(job);
     const establishmentType = getTypeMeta(job).label;
 
@@ -265,6 +266,16 @@ export default function JobCard({ job, variant = 'grid', isSaved = false, saving
                                 </span>
                             )}
                         </div>
+
+                        {matchReasons.length > 0 && (
+                            <div className="mt-4 flex flex-wrap gap-2">
+                                {matchReasons.map((reason) => (
+                                    <span key={reason} className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-200">
+                                        {reason}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex flex-col justify-between gap-4 rounded-2xl border border-borderGlass bg-white/5 p-4 lg:items-end lg:text-right">
@@ -356,6 +367,16 @@ export default function JobCard({ job, variant = 'grid', isSaved = false, saving
                         </span>
                     )}
                 </div>
+
+                {matchReasons.length > 0 && (
+                    <div className="mb-5 flex flex-wrap gap-2">
+                        {matchReasons.map((reason) => (
+                            <span key={reason} className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-200">
+                                {reason}
+                            </span>
+                        ))}
+                    </div>
+                )}
 
                 <div className="job-card-footer mt-auto flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="text-xs text-white/45">

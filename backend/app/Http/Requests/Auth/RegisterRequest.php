@@ -20,4 +20,19 @@ class RegisterRequest extends FormRequest
             'role' => 'required|string|in:candidat,recruteur',
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'Le nom complet est requis.',
+            'email.required' => 'L email est requis.',
+            'email.email' => 'Entrez une adresse email valide.',
+            'email.unique' => 'Cet email est deja utilise.',
+            'password.required' => 'Le mot de passe est requis.',
+            'password.min' => 'Le mot de passe doit contenir au moins 8 caracteres.',
+            'password.confirmed' => 'La confirmation du mot de passe ne correspond pas.',
+            'role.required' => 'Choisissez un type de compte.',
+            'role.in' => 'Le type de compte choisi est invalide.',
+        ];
+    }
 }

@@ -47,10 +47,18 @@ class AdminController extends Controller
     {
         $validated = $request->validate([
             'status' => 'required|in:active,suspended',
+            'suspension_reason' => 'nullable|string|max:500|prohibited_unless:status,suspended',
         ]);
 
         $offer = JobOffer::findOrFail($id);
-        $offer->update(['status' => $validated['status']]);
+        $reason = trim((string) ($validated['suspension_reason'] ?? ''));
+
+        $offer->update([
+            'status' => $validated['status'],
+            'suspension_reason' => $validated['status'] === 'suspended' && $reason !== ''
+                ? $reason
+                : null,
+        ]);
 
         return response()->json([
             'success' => true,

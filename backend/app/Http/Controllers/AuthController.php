@@ -54,6 +54,8 @@ class AuthController extends Controller
                 'ville' => null,
                 'experience' => null,
                 'poste_recherche' => null,
+                'disponibilite' => null,
+                'contrat_prefere' => null,
             ]);
         }
 
@@ -71,7 +73,7 @@ class AuthController extends Controller
     {
         if (! Auth::attempt($request->only('email', 'password'))) {
             return response()->json([
-                'message' => 'Invalid login credentials',
+                'message' => 'Email ou mot de passe incorrect.',
             ], 401);
         }
 
@@ -140,7 +142,7 @@ class AuthController extends Controller
             $profile = $user->candidatProfile()->firstOrCreate(['user_id' => $user->id]);
 
             $profileData = [];
-            foreach (['ville', 'experience', 'poste_recherche'] as $field) {
+            foreach (['ville', 'experience', 'poste_recherche', 'disponibilite', 'contrat_prefere'] as $field) {
                 if (array_key_exists($field, $validated)) {
                     $profileData[$field] = $validated[$field];
                 }

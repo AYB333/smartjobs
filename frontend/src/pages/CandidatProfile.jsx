@@ -14,6 +14,8 @@ import api from '../api/axios';
 const cities = ['Casablanca', 'Rabat', 'Marrakech', 'Agadir', 'Fès', 'Tanger', 'Meknès', 'Oujda', 'Tétouan', 'El Jadida'];
 const experienceOptions = ['Sans expérience', 'Moins de 1 an', '1 à 2 ans', '3 à 5 ans', 'Plus de 5 ans'];
 const positionOptions = ['Serveur', 'Cuisinier', 'Réceptionniste', 'Femme de chambre', 'Plongeur', 'Barman', 'Barista', 'Chef de rang', 'Commis de cuisine', 'Gérant'];
+const availabilityOptions = ['Immediate', 'Sous 1 semaine', 'Sous 2 semaines', 'Sous 1 mois'];
+const contractOptions = ['CDI', 'CDD', 'Extra', 'Saisonnier'];
 
 function getBackendBaseUrl() {
     const base = api?.defaults?.baseURL || '';
@@ -59,6 +61,8 @@ function getCandidateProfile(user) {
         cv_url: profile?.cv_url ?? profile?.cvUrl ?? '',
         photo_path: profile?.photo_path ?? profile?.photoPath ?? '',
         photo_url: profile?.photo_url ?? profile?.photoUrl ?? '',
+        disponibilite: profile?.disponibilite ?? '',
+        contrat_prefere: profile?.contrat_prefere ?? profile?.contratPrefere ?? '',
     };
 }
 
@@ -88,6 +92,8 @@ function completionItems(form, currentProfile, cvFile, photoFile) {
         { label: 'Ville', done: Boolean(form.ville.trim()) },
         { label: 'Expérience', done: Boolean(form.experience.trim()) },
         { label: 'Poste recherché', done: Boolean(form.poste_recherche.trim()) },
+        { label: 'Disponibilité', done: Boolean(form.disponibilite.trim()) },
+        { label: 'Contrat préféré', done: Boolean(form.contrat_prefere.trim()) },
         { label: 'CV PDF', done: Boolean(cvFile || hasProfileFile(currentProfile, 'cv_path', 'cv_url')) },
         { label: 'Photo', done: Boolean(photoFile || hasProfileFile(currentProfile, 'photo_path', 'photo_url')), optional: true },
     ];
@@ -152,6 +158,8 @@ export default function CandidatProfile() {
         ville: '',
         experience: '',
         poste_recherche: '',
+        disponibilite: '',
+        contrat_prefere: '',
     });
     const [cvFile, setCvFile] = useState(null);
     const [photoFile, setPhotoFile] = useState(null);
@@ -164,11 +172,12 @@ export default function CandidatProfile() {
     const currentCvUrl = profileFileUrl(backendBase, currentProfile, 'cv_path', 'cv_url');
     const currentPhotoUrl = photoPreview || profileFileUrl(backendBase, currentProfile, 'photo_path', 'photo_url');
     const hasCoreProfile = Boolean(form.ville.trim() && form.experience.trim() && form.poste_recherche.trim());
+    const hasProfessionalPreferences = Boolean(form.disponibilite.trim() && form.contrat_prefere.trim());
     const hasSavedCv = hasProfileFile(currentProfile, 'cv_path', 'cv_url');
     const hasSavedPhoto = hasProfileFile(currentProfile, 'photo_path', 'photo_url');
     const hasCvReady = Boolean(cvFile || hasSavedCv);
     const canSeeRecommendations = Boolean(form.ville.trim() && form.poste_recherche.trim());
-    const recommendedJobsUrl = `/jobs?ville=${encodeURIComponent(form.ville)}&search=${encodeURIComponent(form.poste_recherche)}`;
+    const recommendedJobsUrl = `/jobs?ville=${encodeURIComponent(form.ville)}&search=${encodeURIComponent(form.poste_recherche)}&type_contrat=${encodeURIComponent(form.contrat_prefere)}`;
     const cityOptions = withCurrentValue(cities, form.ville);
     const mappedExperienceOptions = withCurrentValue(experienceOptions, form.experience);
     const mappedPositionOptions = withCurrentValue(positionOptions, form.poste_recherche);
@@ -178,12 +187,16 @@ export default function CandidatProfile() {
             return 'Complétez vos informations';
         }
 
+        if (!hasProfessionalPreferences) {
+            return 'Ajoutez vos préférences';
+        }
+
         if (!hasCvReady) {
             return 'Ajoutez votre CV';
         }
 
         return 'Profil prêt pour postuler';
-    }, [hasCoreProfile, hasCvReady]);
+    }, [hasCoreProfile, hasCvReady, hasProfessionalPreferences]);
 
     useEffect(() => {
         const loadProfile = async () => {
@@ -198,6 +211,8 @@ export default function CandidatProfile() {
                     ville: profile?.ville || '',
                     experience: profile?.experience || '',
                     poste_recherche: profile?.poste_recherche || '',
+                    disponibilite: profile?.disponibilite || '',
+                    contrat_prefere: profile?.contrat_prefere || '',
                 });
                 if (user) {
                     localStorage.setItem('user', JSON.stringify(user));
@@ -269,6 +284,14 @@ export default function CandidatProfile() {
             setError('Le poste recherché est requis.');
             return;
         }
+        if (!form.disponibilite.trim()) {
+            setError('La disponibilité est requise.');
+            return;
+        }
+        if (!form.contrat_prefere.trim()) {
+            setError('Le contrat préféré est requis.');
+            return;
+        }
 
         setSaving(true);
 
@@ -276,6 +299,8 @@ export default function CandidatProfile() {
         payload.append('ville', form.ville);
         payload.append('experience', form.experience);
         payload.append('poste_recherche', form.poste_recherche);
+        payload.append('disponibilite', form.disponibilite);
+        payload.append('contrat_prefere', form.contrat_prefere);
         if (cvFile) payload.append('cv', cvFile);
         if (photoFile) payload.append('photo', photoFile);
         payload.append('_method', 'PATCH');
@@ -292,6 +317,8 @@ export default function CandidatProfile() {
                 ville: profile?.ville || form.ville,
                 experience: profile?.experience || form.experience,
                 poste_recherche: profile?.poste_recherche || form.poste_recherche,
+                disponibilite: profile?.disponibilite || form.disponibilite,
+                contrat_prefere: profile?.contrat_prefere || form.contrat_prefere,
             });
             if (user) {
                 localStorage.setItem('user', JSON.stringify(user));
@@ -366,6 +393,20 @@ export default function CandidatProfile() {
                                             placeholder="Choisir un poste"
                                         />
                                     </div>
+                                    <SelectField
+                                        label="Disponibilité"
+                                        value={form.disponibilite}
+                                        onChange={(value) => setField('disponibilite', value)}
+                                        options={availabilityOptions}
+                                        placeholder="Choisir une disponibilité"
+                                    />
+                                    <SelectField
+                                        label="Contrat préféré"
+                                        value={form.contrat_prefere}
+                                        onChange={(value) => setField('contrat_prefere', value)}
+                                        options={contractOptions}
+                                        placeholder="Choisir un contrat"
+                                    />
                                 </div>
                             </div>
 
@@ -492,6 +533,14 @@ export default function CandidatProfile() {
                                     <div className="flex items-center justify-between gap-3 border-b border-borderGlass pb-3">
                                         <span className="text-white/50">Expérience</span>
                                         <span className="text-right font-semibold text-white">{form.experience || 'Non renseignée'}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-3 border-b border-borderGlass pb-3">
+                                        <span className="text-white/50">Disponibilité</span>
+                                        <span className="text-right font-semibold text-white">{form.disponibilite || 'Non renseignée'}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-3 border-b border-borderGlass pb-3">
+                                        <span className="text-white/50">Contrat préféré</span>
+                                        <span className="text-right font-semibold text-white">{form.contrat_prefere || 'Non renseigné'}</span>
                                     </div>
                                     <div className="flex items-center justify-between gap-3">
                                         <span className="text-white/50">CV</span>

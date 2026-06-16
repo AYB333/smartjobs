@@ -17,6 +17,8 @@ class CandidatProfileFactory extends Factory
             'ville' => 'Casablanca',
             'experience' => '1 a 2 ans',
             'poste_recherche' => 'Serveur',
+            'disponibilite' => 'Immediate',
+            'contrat_prefere' => 'CDI',
             'cv_path' => 'cvs/test-cv.pdf',
             'photo_path' => null,
         ];

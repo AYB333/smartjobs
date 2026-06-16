@@ -110,8 +110,16 @@ export default function QuizPage() {
                         <p className="text-white/60">Chargement du quiz...</p>
                     </div>
                 ) : error && !quiz ? (
-                    <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-5 py-4 text-rose-200">
-                        {error}
+                    <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-5 py-5 text-rose-200">
+                        <p className="text-sm font-semibold">{error}</p>
+                        <button
+                            type="button"
+                            onClick={() => navigate('/jobs', { replace: true })}
+                            className="mt-4 inline-flex items-center gap-2 rounded-xl border border-rose-300/30 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/15"
+                        >
+                            <ArrowLeft size={15} />
+                            Retour aux offres
+                        </button>
                     </div>
                 ) : result ? (
                     <motion.section

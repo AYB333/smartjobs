@@ -3,10 +3,12 @@
 namespace Database\Seeders;
 
 use App\Models\Application;
+use App\Models\ApplicationMessage;
 use App\Models\JobOffer;
 use App\Models\Question;
 use App\Models\Quiz;
 use App\Models\User;
+use App\Models\UserNotification;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -44,7 +46,9 @@ class DatabaseSeeder extends Seeder
             Storage::disk('public')->delete($imagePaths);
         }
 
+        ApplicationMessage::query()->delete();
         Application::query()->delete();
+        UserNotification::query()->delete();
         Question::query()->delete();
         Quiz::query()->delete();
         JobOffer::query()->delete();
@@ -270,6 +274,8 @@ class DatabaseSeeder extends Seeder
                 'ville' => $ville,
                 'experience' => $experience,
                 'poste_recherche' => $poste,
+                'disponibilite' => 'Immediate',
+                'contrat_prefere' => 'CDI',
                 'cv_path' => null,
                 'photo_path' => null,
             ]
