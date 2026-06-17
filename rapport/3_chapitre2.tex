@@ -1,0 +1,107 @@
+\chapter{Méthodologie et outils utilisés}
+
+\section{Approche de travail}
+
+\noindent
+Le développement de \projectName{} a été réalisé de manière progressive, en partant des besoins essentiels du projet puis en améliorant l'expérience utilisateur et la stabilité de l'application. Cette approche a permis de construire d'abord les fonctionnalités principales, puis de corriger les problèmes de logique, de navigation, de cohérence visuelle et de qualité du code.
+
+\noindent
+Le travail a été organisé autour de cycles courts :
+
+\begin{itemize}
+    \item analyse du besoin et identification des rôles ;
+    \item conception des données et des routes API ;
+    \item développement des interfaces principales ;
+    \item intégration entre frontend et backend ;
+    \item tests des parcours utilisateur ;
+    \item corrections et stabilisation pour la démonstration.
+\end{itemize}
+
+\section{Outils de développement}
+
+\noindent
+Plusieurs outils ont été utilisés pour réaliser le projet :
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{|p{4cm}|p{9cm}|}
+\hline
+\textbf{Outil} & \textbf{Utilisation} \\
+\hline
+Visual Studio Code & Édition du code frontend, backend et du rapport. \\
+\hline
+Git et GitHub & Versionnement du projet et sauvegarde du code source. \\
+\hline
+Laragon & Environnement local pour exécuter Laravel et MySQL. \\
+\hline
+Postman / navigateur & Vérification manuelle des API et des parcours. \\
+\hline
+Composer & Gestion des dépendances PHP Laravel. \\
+\hline
+npm & Gestion des dépendances frontend React. \\
+\hline
+\end{tabular}
+\caption{Outils utilisés durant le développement}
+\label{tab:outils_dev}
+\end{table}
+
+\section{Technologies frontend}
+
+\subsection{React et Vite}
+
+\noindent
+Le frontend de \projectName{} est développé avec \textbf{React}. Cette bibliothèque permet de construire des interfaces dynamiques à partir de composants réutilisables. \textbf{Vite} a été utilisé comme outil de développement et de build, notamment pour sa rapidité et sa configuration légère.
+
+\subsection{Tailwind CSS}
+
+\noindent
+\textbf{Tailwind CSS} a été utilisé pour construire rapidement une interface responsive et cohérente. Il a permis de mettre en place l'identité visuelle de SmartJobs : thème sombre premium, accent orange, cartes avec effet glassmorphism et adaptation au mode clair.
+
+\subsection{Framer Motion}
+
+\noindent
+\textbf{Framer Motion} a été utilisé pour améliorer l'expérience utilisateur grâce à des animations légères, notamment sur les transitions, les cartes et certains composants interactifs.
+
+\section{Technologies backend}
+
+\subsection{Laravel 11}
+
+\noindent
+Le backend est développé avec \textbf{Laravel 11}. Il fournit une API REST structurée permettant la gestion de l'authentification, des offres, des candidatures, des quiz, des notifications et des actions d'administration.
+
+\subsection{Laravel Sanctum}
+
+\noindent
+\textbf{Laravel Sanctum} est utilisé pour sécuriser l'accès aux endpoints protégés. Les utilisateurs authentifiés accèdent aux fonctionnalités selon leur rôle : candidat, recruteur ou administrateur.
+
+\subsection{MySQL}
+
+\noindent
+La base de données \textbf{MySQL} stocke les utilisateurs, profils, offres, candidatures, quiz, notifications, messages et paiements. Les migrations Laravel permettent de gérer l'évolution du schéma de manière contrôlée.
+
+\section{Qualité et validation}
+
+\noindent
+La qualité du projet a été assurée à travers plusieurs vérifications :
+
+\begin{itemize}
+    \item compilation frontend avec \texttt{npm run build} ;
+    \item analyse statique avec \texttt{npm run lint} ;
+    \item tests backend Laravel avec \texttt{php artisan test} ;
+    \item tests manuels des parcours candidat, recruteur et administrateur ;
+    \item vérification des règles métier critiques comme l'unicité des candidatures et l'accès aux quiz.
+\end{itemize}
+
+\section{Organisation du code}
+
+\noindent
+Le projet est organisé en deux parties :
+
+\begin{itemize}
+    \item \textbf{frontend/} : application React, pages, composants, styles, appels API ;
+    \item \textbf{backend/} : API Laravel, contrôleurs, modèles, migrations, tests et routes.
+\end{itemize}
+
+\noindent
+Cette séparation facilite la maintenance, la lisibilité et l'évolution future de la plateforme.

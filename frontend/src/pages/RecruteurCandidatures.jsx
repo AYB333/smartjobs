@@ -29,9 +29,9 @@ const itemVariants = {
 };
 
 const statusBadgeClasses = {
-    en_attente: 'bg-amber-500/12 text-amber-300 border-amber-400/30',
-    acceptee: 'bg-emerald-500/12 text-emerald-300 border-emerald-400/30',
-    refusee: 'bg-rose-500/12 text-rose-300 border-rose-400/30',
+    en_attente: 'recruiter-status-pending bg-amber-500/12 text-amber-300 border-amber-400/30',
+    acceptee: 'recruiter-status-accepted bg-emerald-500/12 text-emerald-300 border-emerald-400/30',
+    refusee: 'recruiter-status-rejected bg-rose-500/12 text-rose-300 border-rose-400/30',
 };
 
 function extractPaginatedList(payload) {
@@ -206,8 +206,10 @@ export default function RecruteurCandidatures() {
     const [quizFilter, setQuizFilter] = useState('all');
     const [loading, setLoading] = useState(true);
     const [updatingId, setUpdatingId] = useState(null);
+    const [consultingId, setConsultingId] = useState(null);
     const [chatApplication, setChatApplication] = useState(null);
     const [error, setError] = useState('');
+    const [quotaError, setQuotaError] = useState(null);
 
     const backendBase = useMemo(() => getBackendBaseUrl(), []);
     const selectedOfferId = searchParams.get('offer') || 'all';
@@ -298,6 +300,7 @@ export default function RecruteurCandidatures() {
     const updateStatus = async (applicationId, status) => {
         setUpdatingId(applicationId);
         setError('');
+        setQuotaError(null);
 
         try {
             await api.patch(`/postulations/${applicationId}/status`, { status });
@@ -324,6 +327,63 @@ export default function RecruteurCandidatures() {
             });
         } finally {
             setUpdatingId(null);
+        }
+    };
+
+    const consultApplication = async (applicationId) => {
+        setConsultingId(applicationId);
+        setError('');
+        setQuotaError(null);
+
+        try {
+            const response = await api.get(`/postulations/${applicationId}/consult`);
+            const consultedApplication = response?.data?.data;
+
+            if (consultedApplication?.id) {
+                setOffers((currentOffers) => currentOffers.map((offer) => ({
+                    ...offer,
+                    applications: getOfferApplications(offer).map((application) => (
+                        application.id === consultedApplication.id
+                            ? {
+                                ...application,
+                                ...consultedApplication,
+                                offer: application.offer ?? offer,
+                                _consulted: true,
+                            }
+                            : application
+                    )),
+                })));
+            }
+
+            showToast({
+                type: 'success',
+                title: 'Profil candidat',
+                message: 'Profil candidat disponible.',
+            });
+        } catch (requestError) {
+            const response = requestError?.response;
+            const message = response?.data?.message || 'Impossible de consulter cette candidature.';
+
+            if (response?.status === 403 && response?.data?.code === 'quota_exceeded') {
+                setQuotaError({
+                    message,
+                    resetAt: response?.data?.reset_at,
+                });
+                showToast({
+                    type: 'error',
+                    title: 'Quota gratuit epuise',
+                    message,
+                });
+            } else {
+                setError(message);
+                showToast({
+                    type: 'error',
+                    title: 'Candidature',
+                    message,
+                });
+            }
+        } finally {
+            setConsultingId(null);
         }
     };
 
@@ -376,6 +436,29 @@ export default function RecruteurCandidatures() {
                             className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-5 py-4 text-sm font-medium text-rose-200"
                         >
                             {error}
+                        </motion.section>
+                    )}
+
+                    {quotaError && (
+                        <motion.section
+                            variants={itemVariants}
+                            className="flex flex-col gap-4 rounded-2xl border border-amber-400/30 bg-amber-500/10 px-5 py-4 text-sm text-amber-100 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                            <div>
+                                <p className="font-semibold">{quotaError.message}</p>
+                                {quotaError.resetAt && (
+                                    <p className="mt-1 text-xs text-amber-100/70">
+                                        Renouvellement estime: {formatDate(quotaError.resetAt)}
+                                    </p>
+                                )}
+                            </div>
+                            <Link
+                                to="/recruteur/premium"
+                                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent/90"
+                            >
+                                Passer Premium
+                                <ArrowRight size={14} />
+                            </Link>
                         </motion.section>
                     )}
 
@@ -527,6 +610,8 @@ export default function RecruteurCandidatures() {
                                     const cvUrl = resolveCvUrl(application, profile, backendBase);
                                     const photoUrl = resolvePhotoUrl(profile, backendBase);
                                     const isUpdating = updatingId === application.id;
+                                    const isConsulting = consultingId === application.id;
+                                    const isConsulted = Boolean(application?._consulted || profile?.cv_path || profile?.photo_path || application?.cv_path);
                                     const isAccepted = application.status === 'acceptee';
                                     const isRejected = application.status === 'refusee';
                                     const reviewScore = getCandidateReviewScore(application);
@@ -536,125 +621,173 @@ export default function RecruteurCandidatures() {
                                             key={application.id}
                                             className="rounded-3xl border border-borderGlass bg-white/5 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-accent/35 hover:shadow-[0_18px_48px_rgba(232,101,26,0.10)] md:p-5"
                                         >
-                                            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_270px] xl:items-center">
-                                                <div className="min-w-0">
-                                                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-                                                        <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-borderGlass bg-accent/15 text-sm font-black text-accent">
-                                                            {photoUrl ? (
-                                                                <img src={photoUrl} alt={`Photo de ${candidate?.name || 'candidat'}`} className="h-full w-full object-cover" />
-                                                            ) : (
-                                                                getInitials(candidate?.name)
-                                                            )}
+                                            {!isConsulted ? (
+                                                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-center">
+                                                    <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
+                                                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-borderGlass bg-accent/15 text-sm font-black text-accent">
+                                                            {getInitials(candidate?.name)}
                                                         </div>
-
-                                                        <div className="min-w-0 flex-1">
-                                                            <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                                                                <div className="min-w-0">
-                                                                    <p className="truncate text-lg font-bold text-white">{candidate?.name || 'Candidat'}</p>
-                                                                    <p className="mt-1 truncate text-sm text-white/50">{candidate?.email || 'Email non renseigné'}</p>
-                                                                </div>
-
-                                                                <span
-                                                                    className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold ${
-                                                                        statusBadgeClasses[application.status] || 'border-white/20 bg-white/10 text-white/75'
-                                                                    }`}
-                                                                >
-                                                                    {toReadableStatus(application.status, t)}
-                                                                </span>
-                                                                <span className={`inline-flex w-fit items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
-                                                                    reviewScore >= 75
-                                                                        ? 'border-emerald-400/30 bg-emerald-500/10 text-emerald-200'
-                                                                        : 'border-sky-400/30 bg-sky-500/10 text-sky-200'
-                                                                }`}>
-                                                                    <Sparkles size={12} />
-                                                                        {reviewScore >= 75 ? t('recruiter.applications.recommendedProfile') : t('recruiter.applications.profileScore')} {reviewScore}%
-                                                                </span>
-                                                            </div>
-
-                                                            <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                                                        <div className="min-w-0">
+                                                            <p className="truncate text-lg font-bold text-white">{candidate?.name || 'Candidat'}</p>
+                                                            <div className="mt-2 flex flex-wrap gap-2">
                                                                 <span className="inline-flex min-w-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white/75">
                                                                     <Briefcase size={13} className="shrink-0 text-accent" />
                                                                     <span className="truncate">{offer?.titre_poste || 'Offre'}</span>
                                                                 </span>
-                                                                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white/75">
+                                                                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white/65">
                                                                     <MapPin size={13} className="shrink-0 text-accent" />
-                                                                    <span className="truncate">{profile?.ville || offer?.ville || '-'}</span>
+                                                                    <span>{offer?.ville || '-'}</span>
                                                                 </span>
-                                                                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white/75">
-                                                                    <ShieldCheck size={13} className="shrink-0 text-accent" />
-                                                                    <span>{t('common.quiz')}: {application.quiz_score ?? t('recruiter.applications.noScore')}</span>
-                                                                </span>
-                                                                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white/75">
+                                                                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white/65">
                                                                     <Calendar size={13} className="shrink-0 text-accent" />
                                                                     <span>{formatDate(application.created_at)}</span>
                                                                 </span>
                                                             </div>
                                                         </div>
                                                     </div>
+
+                                                    <div className="flex flex-col gap-2 sm:flex-row lg:flex-col">
+                                                        <button
+                                                            type="button"
+                                                            disabled={isConsulting}
+                                                            onClick={() => consultApplication(application.id)}
+                                                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-accent px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-60"
+                                                        >
+                                                            <UserRound size={15} />
+                                                            {isConsulting ? 'Consultation...' : 'Voir candidature'}
+                                                        </button>
+                                                        {offerId && (
+                                                            <Link
+                                                                to={`/jobs/${offerId}`}
+                                                                className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-borderGlass bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/70 transition-colors hover:border-accent/40 hover:text-white"
+                                                            >
+                                                                {t('common.viewOffer')}
+                                                                <ArrowRight size={14} />
+                                                            </Link>
+                                                        )}
+                                                    </div>
                                                 </div>
+                                            ) : (
+                                                <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_270px] xl:items-center">
+                                                    <div className="min-w-0">
+                                                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                                                            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-borderGlass bg-accent/15 text-sm font-black text-accent">
+                                                                {photoUrl ? (
+                                                                    <img src={photoUrl} alt={`Photo de ${candidate?.name || 'candidat'}`} className="h-full w-full object-cover" />
+                                                                ) : (
+                                                                    getInitials(candidate?.name)
+                                                                )}
+                                                            </div>
 
-                                                <div className="flex flex-col gap-2 sm:flex-row xl:flex-col">
-                                                    {cvUrl ? (
-                                                        <a
-                                                            href={cvUrl}
-                                                            target="_blank"
-                                                            rel="noreferrer"
-                                                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-borderGlass bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/85 transition-colors hover:border-accent/45 hover:text-white"
-                                                        >
-                                                            <Download size={15} />
-                                                            {t('recruiter.applications.cvAction')}
-                                                        </a>
-                                                    ) : (
-                                                        <span className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/38">
-                                                            <FileText size={15} />
-                                                            {t('recruiter.applications.cvUnavailable')}
-                                                        </span>
-                                                    )}
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                                                                    <div className="min-w-0">
+                                                                        <p className="truncate text-lg font-bold text-white">{candidate?.name || 'Candidat'}</p>
+                                                                        <p className="mt-1 truncate text-sm text-white/50">{candidate?.email || 'Email non renseigné'}</p>
+                                                                    </div>
 
-                                                    <div className="grid flex-1 grid-cols-2 gap-2">
-                                                        <button
-                                                            type="button"
-                                                            disabled={isUpdating || isAccepted}
-                                                            onClick={() => updateStatus(application.id, 'acceptee')}
-                                                            className="inline-flex items-center justify-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-2.5 text-xs font-bold text-emerald-200 transition-colors hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-45"
-                                                        >
-                                                            <Check size={14} />
-                                                            {t('recruiter.applications.accept')}
-                                                        </button>
+                                                                    <span
+                                                                        className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold ${
+                                                                            statusBadgeClasses[application.status] || 'border-white/20 bg-white/10 text-white/75'
+                                                                        }`}
+                                                                    >
+                                                                        {toReadableStatus(application.status, t)}
+                                                                    </span>
+                                                                    <span className={`inline-flex w-fit items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
+                                                                        reviewScore >= 75
+                                                                            ? 'recruiter-score-success border-emerald-400/30 bg-emerald-500/10 text-emerald-200'
+                                                                            : 'recruiter-score-info border-sky-400/30 bg-sky-500/10 text-sky-200'
+                                                                    }`}>
+                                                                        <Sparkles size={12} />
+                                                                            {reviewScore >= 75 ? t('recruiter.applications.recommendedProfile') : t('recruiter.applications.profileScore')} {reviewScore}%
+                                                                    </span>
+                                                                </div>
 
-                                                        <button
-                                                            type="button"
-                                                            disabled={isUpdating || isRejected}
-                                                            onClick={() => updateStatus(application.id, 'refusee')}
-                                                            className="inline-flex items-center justify-center gap-1.5 rounded-full border border-rose-400/30 bg-rose-500/10 px-3 py-2.5 text-xs font-bold text-rose-200 transition-colors hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-45"
-                                                        >
-                                                            <X size={14} />
-                                                            {t('recruiter.applications.reject')}
-                                                        </button>
+                                                                <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                                                                    <span className="inline-flex min-w-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white/75">
+                                                                        <Briefcase size={13} className="shrink-0 text-accent" />
+                                                                        <span className="truncate">{offer?.titre_poste || 'Offre'}</span>
+                                                                    </span>
+                                                                    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white/75">
+                                                                        <MapPin size={13} className="shrink-0 text-accent" />
+                                                                        <span className="truncate">{profile?.ville || offer?.ville || '-'}</span>
+                                                                    </span>
+                                                                    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white/75">
+                                                                        <ShieldCheck size={13} className="shrink-0 text-accent" />
+                                                                        <span>{t('common.quiz')}: {application.quiz_score ?? t('recruiter.applications.noScore')}</span>
+                                                                    </span>
+                                                                    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white/75">
+                                                                        <Calendar size={13} className="shrink-0 text-accent" />
+                                                                        <span>{formatDate(application.created_at)}</span>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     </div>
 
-                                                    {isAccepted && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setChatApplication(application)}
-                                                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/20"
-                                                        >
-                                                            <MessageCircle size={15} />
-                                                            {t('candidate.dashboard.discussion')}
-                                                        </button>
-                                                    )}
+                                                    <div className="flex flex-col gap-2 sm:flex-row xl:flex-col">
+                                                        {cvUrl ? (
+                                                            <a
+                                                                href={cvUrl}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-borderGlass bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/85 transition-colors hover:border-accent/45 hover:text-white"
+                                                            >
+                                                                <Download size={15} />
+                                                                {t('recruiter.applications.cvAction')}
+                                                            </a>
+                                                        ) : (
+                                                            <span className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/38">
+                                                                <FileText size={15} />
+                                                                {t('recruiter.applications.cvUnavailable')}
+                                                            </span>
+                                                        )}
 
-                                                    {offerId && (
-                                                        <Link
-                                                            to={`/jobs/${offerId}`}
-                                                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-borderGlass bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/70 transition-colors hover:border-accent/40 hover:text-white"
-                                                        >
-                                                            {t('common.viewOffer')}
-                                                            <ArrowRight size={14} />
-                                                        </Link>
-                                                    )}
+                                                        <div className="grid flex-1 grid-cols-2 gap-2">
+                                                            <button
+                                                                type="button"
+                                                                disabled={isUpdating || isAccepted}
+                                                                onClick={() => updateStatus(application.id, 'acceptee')}
+                                                                className="recruiter-action-success inline-flex items-center justify-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-2.5 text-xs font-bold text-emerald-200 transition-colors hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-45"
+                                                            >
+                                                                <Check size={14} />
+                                                                {t('recruiter.applications.accept')}
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                disabled={isUpdating || isRejected}
+                                                                onClick={() => updateStatus(application.id, 'refusee')}
+                                                                className="recruiter-action-danger inline-flex items-center justify-center gap-1.5 rounded-full border border-rose-400/30 bg-rose-500/10 px-3 py-2.5 text-xs font-bold text-rose-200 transition-colors hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-45"
+                                                            >
+                                                                <X size={14} />
+                                                                {t('recruiter.applications.reject')}
+                                                            </button>
+                                                        </div>
+
+                                                        {isAccepted && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setChatApplication(application)}
+                                                                className="recruiter-action-success inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/20"
+                                                            >
+                                                                <MessageCircle size={15} />
+                                                                {t('candidate.dashboard.discussion')}
+                                                            </button>
+                                                        )}
+
+                                                        {offerId && (
+                                                            <Link
+                                                                to={`/jobs/${offerId}`}
+                                                                className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-borderGlass bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/70 transition-colors hover:border-accent/40 hover:text-white"
+                                                            >
+                                                                {t('common.viewOffer')}
+                                                                <ArrowRight size={14} />
+                                                            </Link>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            )}
                                         </article>
                                     );
                                 })}

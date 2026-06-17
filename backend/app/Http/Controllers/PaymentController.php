@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StorePaymentRequest;
+use App\Models\CandidateProfileView;
 use App\Models\Payment;
 use App\Models\User;
 use Carbon\Carbon;
@@ -15,6 +16,8 @@ use Stripe\Webhook;
 
 class PaymentController extends Controller
 {
+    private const FREE_PROFILE_LIMIT = 1;
+
     public function __construct()
     {
         Stripe::setApiKey(env('STRIPE_SECRET'));
@@ -56,7 +59,7 @@ class PaymentController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Le paiement est momentanement indisponible. Verifiez la configuration Stripe et reessayez.',
             ], 500);
         }
     }
@@ -72,42 +75,85 @@ class PaymentController extends Controller
         ]);
 
         try {
+            $recruteur = $this->currentRecruteur();
+            $package = $request->package_type;
+            $expectedAmount = $package === 'yearly' ? 10000 : 1000;
             $paymentIntent = PaymentIntent::retrieve($request->payment_intent_id);
+            $metadata = $paymentIntent->metadata && method_exists($paymentIntent->metadata, 'toArray')
+                ? $paymentIntent->metadata->toArray()
+                : [];
 
-            if ($paymentIntent->status === 'succeeded') {
-                $recruteur = $this->currentRecruteur();
-                $package = $request->package_type;
-                $days = $package === 'yearly' ? 365 : 30;
+            if ((string) ($metadata['recruteur_id'] ?? '') !== (string) $recruteur->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ce paiement ne correspond pas a votre compte recruteur.',
+                ], 403);
+            }
 
-                // Save payment record
-                Payment::create([
-                    'recruteur_id' => $recruteur->id,
-                    'amount' => $paymentIntent->amount / 100,
-                    'package_type' => $package,
-                    'stripe_payment_id' => $paymentIntent->id,
-                    'status' => 'succeeded',
-                ]);
+            if (($metadata['package_type'] ?? null) !== $package) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Le forfait confirme ne correspond pas au paiement Stripe.',
+                ], 422);
+            }
 
-                // Update Premium Status
-                $expiresAt = $recruteur->is_premium && $recruteur->premium_expires_at
-                    ? Carbon::parse($recruteur->premium_expires_at)->addDays($days)
-                    : Carbon::now()->addDays($days);
+            if ((int) $paymentIntent->amount !== $expectedAmount || strtolower((string) $paymentIntent->currency) !== 'usd') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Le montant du paiement ne correspond pas au forfait selectionne.',
+                ], 422);
+            }
 
-                $recruteur->update([
-                    'is_premium' => true,
-                    'premium_expires_at' => $expiresAt,
-                ]);
+            if ($paymentIntent->status !== 'succeeded') {
+                return response()->json(['success' => false, 'message' => 'Paiement non valide.'], 400);
+            }
+
+            $existingPayment = Payment::where('stripe_payment_id', $paymentIntent->id)->first();
+            if ($existingPayment) {
+                if ((int) $existingPayment->recruteur_id !== (int) $recruteur->id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Ce paiement a deja ete associe a un autre compte.',
+                    ], 403);
+                }
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Paiement reussi, compte mis a niveau vers premium.',
+                    'message' => 'Paiement deja confirme, votre premium est actif.',
                 ]);
             }
 
-            return response()->json(['success' => false, 'message' => 'Paiement non valide.'], 400);
+            $days = $package === 'yearly' ? 365 : 30;
+
+            // Save payment record
+            Payment::create([
+                'recruteur_id' => $recruteur->id,
+                'amount' => $paymentIntent->amount / 100,
+                'package_type' => $package,
+                'stripe_payment_id' => $paymentIntent->id,
+                'status' => 'succeeded',
+            ]);
+
+            // Update Premium Status
+            $expiresAt = $recruteur->is_premium && $recruteur->premium_expires_at
+                ? Carbon::parse($recruteur->premium_expires_at)->addDays($days)
+                : Carbon::now()->addDays($days);
+
+            $recruteur->update([
+                'is_premium' => true,
+                'premium_expires_at' => $expiresAt,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Paiement reussi, compte mis a niveau vers premium.',
+            ]);
 
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Impossible de confirmer le paiement pour le moment.',
+            ], 500);
         }
     }
 
@@ -118,16 +164,39 @@ class PaymentController extends Controller
     {
         $recruteur = $this->currentRecruteur();
         $days = 0;
-        if ($recruteur->is_premium && $recruteur->premium_expires_at) {
+        $isPremium = (bool) ($recruteur->is_premium && $recruteur->premium_expires_at && Carbon::parse($recruteur->premium_expires_at)->isFuture());
+
+        if ($isPremium) {
             $days = Carbon::now()->diffInDays(Carbon::parse($recruteur->premium_expires_at), false);
+        }
+
+        $latestView = CandidateProfileView::where('recruteur_id', $recruteur->id)
+            ->where('viewed_at', '>=', Carbon::now()->subDay())
+            ->latest('viewed_at')
+            ->first();
+        $used = $isPremium ? 0 : ($latestView ? self::FREE_PROFILE_LIMIT : 0);
+        $resetAt = $latestView?->viewed_at?->copy()->addDay();
+
+        if (! $isPremium) {
+            $recruteur->forceFill([
+                'vues_aujourdhui' => $used,
+                'derniere_vue_date' => $latestView?->viewed_at?->toDateString(),
+            ])->save();
         }
 
         return response()->json([
             'success' => true,
             'data' => [
-                'is_premium' => (bool) $recruteur->is_premium,
+                'is_premium' => $isPremium,
                 'expires_at' => $recruteur->premium_expires_at,
                 'days_remaining' => $days > 0 ? (int) $days : 0,
+                'quota' => [
+                    'is_premium' => $isPremium,
+                    'limit' => self::FREE_PROFILE_LIMIT,
+                    'used' => $used,
+                    'remaining' => $isPremium ? null : max(self::FREE_PROFILE_LIMIT - $used, 0),
+                    'reset_at' => $isPremium ? null : $resetAt,
+                ],
             ],
         ]);
     }

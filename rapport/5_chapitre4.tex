@@ -1,0 +1,104 @@
+\chapter{Conception et architecture du système}
+
+\section{Architecture générale}
+
+\noindent
+\projectName{} adopte une architecture client-serveur composée de trois couches principales :
+
+\begin{itemize}
+    \item \textbf{Frontend React :} interface utilisateur, navigation, formulaires et affichage des données ;
+    \item \textbf{Backend Laravel :} API REST, logique métier, authentification et validation ;
+    \item \textbf{Base de données MySQL :} persistance des utilisateurs, offres, profils, candidatures et notifications.
+\end{itemize}
+
+\screenshotplaceholder{fig:architecture_smartjobs}{Schéma d'architecture globale de SmartJobs}
+
+\section{Architecture frontend}
+
+\noindent
+Le frontend est organisé autour de pages et de composants réutilisables. Les pages publiques permettent de consulter les offres et d'accéder à l'authentification. Les espaces protégés sont séparés selon les rôles : candidat, recruteur et administrateur.
+
+\noindent
+Les composants partagés incluent notamment la barre de navigation, les cartes d'offres, les sélecteurs personnalisés, le panneau de notifications, les modales et le composant de discussion.
+
+\section{Architecture backend}
+
+\noindent
+Le backend Laravel expose une API REST structurée. Les contrôleurs gèrent les actions principales :
+
+\begin{itemize}
+    \item authentification et profil utilisateur ;
+    \item offres d'emploi ;
+    \item candidatures et statuts ;
+    \item quiz et questions ;
+    \item notifications et messages ;
+    \item paiement premium ;
+    \item administration et modération.
+\end{itemize}
+
+\noindent
+Les middlewares protègent les routes selon le rôle. Ainsi, un candidat ne peut pas accéder aux endpoints recruteur, et un recruteur ne peut pas accéder aux endpoints administrateur.
+
+\section{Modèle de données}
+
+\noindent
+Le modèle de données repose sur plusieurs tables principales. Le tableau suivant résume les entités les plus importantes.
+
+\begin{longtable}{|p{4cm}|p{9cm}|}
+\hline
+\textbf{Table} & \textbf{Rôle dans le système} \\
+\hline
+\endhead
+users & Stocke les comptes, rôles, informations premium et quotas. \\
+\hline
+candidat\_profiles & Stocke les informations professionnelles du candidat, le CV et la photo. \\
+\hline
+recruteur\_profiles & Stocke les informations de l'établissement recruteur. \\
+\hline
+job\_offers & Stocke les offres publiées, leur statut, image et date d'expiration. \\
+\hline
+applications & Stocke les candidatures, statuts, scores de quiz et CV réutilisé. \\
+\hline
+quizzes / questions & Stockent les quiz QCM associés aux offres. \\
+\hline
+saved\_job\_offers & Stocke les offres sauvegardées par les candidats. \\
+\hline
+user\_notifications & Stocke les notifications internes. \\
+\hline
+application\_messages & Stocke les messages de discussion après acceptation. \\
+\hline
+\caption{Principales tables de la base de données}
+\label{tab:tables_bd}
+\end{longtable}
+
+\screenshotplaceholder{fig:erd_smartjobs}{Modèle entité-association de la base de données SmartJobs}
+
+\section{Flux de candidature}
+
+\noindent
+Le flux de candidature constitue une partie critique du système. Il doit garantir que le candidat possède un profil complet et un CV avant de postuler.
+
+\begin{enumerate}
+    \item Le candidat complète son profil et ajoute son CV.
+    \item Il consulte une offre active.
+    \item Il confirme sa candidature.
+    \item Le backend crée une candidature unique pour le couple candidat/offre.
+    \item Si l'offre contient un quiz, le candidat est dirigé vers la page du quiz.
+    \item Le score du quiz met à jour la candidature existante.
+\end{enumerate}
+
+\screenshotplaceholder{fig:sequence_postulation}{Diagramme de séquence du flux de postulation}
+
+\section{Sécurité et validation}
+
+\noindent
+Plusieurs mécanismes de sécurité ont été intégrés :
+
+\begin{itemize}
+    \item authentification par token avec Laravel Sanctum ;
+    \item validation serveur des champs et des fichiers ;
+    \item limitation des fichiers CV au format PDF ;
+    \item limitation des images aux formats JPEG, PNG ou WEBP ;
+    \item index unique pour éviter les candidatures dupliquées ;
+    \item contrôle des rôles sur les routes sensibles.
+\end{itemize}

@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateOffreRequest;
 use App\Models\JobOffer;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Support\AdminNotifier;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -168,6 +169,16 @@ class OffreController extends Controller
 
         $offre = JobOffer::create($validated);
         $this->notifyMatchingCandidates($offre);
+        AdminNotifier::notify(
+            'admin_offer_created',
+            'Nouvelle offre a verifier',
+            sprintf('Le recruteur %s a publie une nouvelle offre: %s.', $request->user()?->name ?? 'Un recruteur', $offre->titre_poste),
+            [
+                'offer_id' => $offre->id,
+                'recruteur_id' => $offre->recruteur_id,
+                'action_url' => '/admin/dashboard',
+            ],
+        );
 
         return response()->json([
             'success' => true,
@@ -197,7 +208,9 @@ class OffreController extends Controller
     public function mesOffres()
     {
         $offres = JobOffer::with(['applications' => function ($query) {
-                $query->with('candidat.candidatProfile')->latest();
+                $query->select(['id', 'job_offer_id', 'candidat_id', 'status', 'quiz_score', 'created_at', 'updated_at'])
+                    ->with('candidat:id,name,email')
+                    ->latest();
             }])
             ->withCount('applications')
             ->withExists('quiz')

@@ -34,13 +34,13 @@ function CheckoutForm({ clientSecret, paymentIntentId, packageType, onSuccess, d
         setError('');
 
         if (!stripe || !elements) {
-            setError('Stripe n est pas pret.');
+            setError('Le paiement Stripe est en cours de chargement. Reessayez dans quelques secondes.');
             return;
         }
 
         const card = elements.getElement(CardElement);
         if (!card) {
-            setError('Impossible de lire les informations de carte.');
+            setError('Impossible de lire les informations de carte. Verifiez le formulaire de paiement.');
             return;
         }
 
@@ -67,7 +67,7 @@ function CheckoutForm({ clientSecret, paymentIntentId, packageType, onSuccess, d
 
             setError(t('premium.paymentInvalid'));
         } catch (requestError) {
-            setError(requestError?.response?.data?.message || 'Erreur de confirmation du paiement.');
+            setError(requestError?.response?.data?.message || 'Impossible de confirmer le paiement. Reessayez.');
         } finally {
             setSubmitting(false);
         }
@@ -145,10 +145,18 @@ export default function PremiumPage() {
             setClientSecret(response?.data?.client_secret || '');
             setPaymentIntentId(response?.data?.payment_intent_id || '');
         } catch (requestError) {
-            setError(requestError?.response?.data?.message || 'Impossible de preparer le paiement.');
+            setError(requestError?.response?.data?.message || 'Impossible de preparer le paiement. Verifiez votre configuration Stripe.');
         } finally {
             setIntentLoading(false);
         }
+    };
+
+    const selectPackage = (nextPackage) => {
+        setPackageType(nextPackage);
+        setClientSecret('');
+        setPaymentIntentId('');
+        setError('');
+        setSuccessMessage('');
     };
 
     const handleSuccess = async () => {
@@ -248,7 +256,7 @@ export default function PremiumPage() {
                                 <div className="mt-6 grid grid-cols-2 gap-2">
                                     <button
                                         type="button"
-                                        onClick={() => setPackageType('monthly')}
+                                        onClick={() => selectPackage('monthly')}
                                         className={`rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
                                             packageType === 'monthly'
                                                 ? 'border-accent bg-accent text-white'
@@ -259,14 +267,19 @@ export default function PremiumPage() {
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => setPackageType('yearly')}
-                                        className={`rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
+                                        onClick={() => selectPackage('yearly')}
+                                        className={`relative rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
                                             packageType === 'yearly'
                                                 ? 'border-accent bg-accent text-white'
                                                 : 'border-borderGlass bg-white/5 text-white/75 hover:text-white'
                                         }`}
                                     >
-                                        {t('premium.yearly')}
+                                        <span>{t('premium.yearly')}</span>
+                                        <span className={`mt-1 block text-[11px] font-bold ${
+                                            packageType === 'yearly' ? 'text-white/90' : 'text-accent'
+                                        }`}>
+                                            {t('premium.yearlySavings')}
+                                        </span>
                                     </button>
                                 </div>
                             </div>

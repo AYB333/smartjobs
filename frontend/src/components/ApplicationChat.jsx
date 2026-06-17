@@ -94,7 +94,7 @@ export default function ApplicationChat({ application, onClose }) {
 
     return (
         <div className="fixed inset-0 z-[140] flex items-end justify-center bg-black/60 px-4 py-4 backdrop-blur-sm sm:items-center">
-            <div className="flex max-h-[86vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-borderGlass bg-deepNavy shadow-[0_28px_90px_rgba(0,0,0,0.45)]">
+            <div className="chat-modal flex max-h-[86vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-borderGlass bg-deepNavy shadow-[0_28px_90px_rgba(0,0,0,0.45)]">
                 <div className="flex items-start justify-between gap-4 border-b border-borderGlass px-5 py-4">
                     <div>
                         <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-accent">
@@ -130,10 +130,10 @@ export default function ApplicationChat({ application, onClose }) {
 
                             return (
                                 <div key={message.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`max-w-[78%] rounded-2xl border px-4 py-3 ${
+                                    <div className={`chat-message-bubble max-w-[78%] rounded-2xl border px-4 py-3 ${
                                         mine
-                                            ? 'border-accent/35 bg-accent/15 text-white'
-                                            : 'border-borderGlass bg-white/5 text-white/88'
+                                            ? 'chat-message-mine border-accent/35 bg-accent/15 text-white'
+                                            : 'chat-message-other border-borderGlass bg-white/5 text-white/88'
                                     }`}>
                                         <p className="text-sm leading-6">{message.message}</p>
                                         <p className="mt-2 text-[11px] text-white/42">
@@ -154,7 +154,7 @@ export default function ApplicationChat({ application, onClose }) {
                             rows={2}
                             maxLength={1000}
                             placeholder={t('chat.placeholder')}
-                            className="min-h-[52px] flex-1 resize-none rounded-2xl border border-borderGlass bg-obsidian/70 px-4 py-3 text-sm text-white outline-none transition-colors placeholder:text-white/35 focus:border-accent/55"
+                            className="chat-input min-h-[52px] flex-1 resize-none rounded-2xl border border-borderGlass bg-obsidian/70 px-4 py-3 text-sm text-white outline-none transition-colors placeholder:text-white/35 focus:border-accent/55"
                         />
                         <button
                             type="submit"

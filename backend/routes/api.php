@@ -49,6 +49,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/offres/{id}', [OffreController::class, 'destroy']);
 
         Route::get('/offres/{id}/postulants', [PostulationController::class, 'postulants']);
+        Route::get('/postulations/{id}/consult', [PostulationController::class, 'consult']);
         Route::patch('/postulations/{id}/status', [PostulationController::class, 'updateStatus']);
 
         Route::post('/offres/{id}/quiz', [QuizController::class, 'store']);

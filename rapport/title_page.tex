@@ -1,0 +1,60 @@
+\begin{titlepage}
+    \centering
+
+    % --- LOGO ---
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.7\linewidth]{img/logoecole.png}
+    \end{figure}
+    
+    % --- BARRE BLEUE HAUT ---
+   \vspace{0.2cm}
+    \centerline{\textcolor{ensiasdblue}{\rule{1.1\linewidth}{15pt}}}
+    \vspace{1cm}
+    
+    % --- TITRE PRINCIPAL ---
+    {\fontsize{19}{23}\selectfont \bfseries RAPPORT DE STAGE}
+    \vspace{1cm}
+
+    % --- FILIÈRE ---
+    {\fontsize{13}{16}\selectfont \bfseries Filière : « \filiere »}
+    \vspace{1cm}
+
+    % --- THÈME DU STAGE ---
+    \textcolor{ensiasdblue}{\rule{0.95\linewidth}{3pt}}\\[0.2cm]
+    {\fontsize{16}{18}\bfseries \theme}\\[0.2cm]
+    \textcolor{ensiasdblue}{\rule{0.95\linewidth}{3pt}}
+    \vspace{0.5cm}
+
+    % --- AUTEUR ET DATE DE SOUTENANCE ---
+    {\fontsize {14}{16}\selectfont \textbf{Présenté par}}\\[0.1cm]
+    \etudiant \\[0.3cm]
+    Soutenue le \dateSoutenance \hspace{0.5cm} à \heureSoutenance
+    \vspace{0.5cm}
+
+% --- JURY ---
+\begin{flushleft} % Aligner le titre "Devant le jury" à gauche
+    {\large \bfseries Devant le jury}
+\end{flushleft}
+
+
+
+% Utilisation de tabular* pour contrôler la largeur totale et l'alignement
+% l : colonne gauche (Pr + Nom)
+% l : colonne centrale (Description)
+% @{\extracolsep{\fill}} : espace flexible qui pousse la colonne suivante à droite
+% r : colonne droite (Rôle)
+\begin{tabular*}{\linewidth}{l l @{\extracolsep{\fill}} r}
+    Pr. \president & Professeur à l’ENSIASD de Taroudant & Président \\[0.7em]
+    Pr. \examinateurUn & Professeur à l’ENSIASD de Taroudant & Examinateur \\[0.7em]
+    Pr. \examinateurDeux & Professeur à l’ENSIASD de Taroudant & Examinateur \\[0.7em]
+  
+\end{tabular*}
+    \vspace{1cm}
+
+    % --- ANNÉE UNIVERSITAIRE ET BARRE BAS ---
+    {\large \bfseries Année Universitaire \anneeU} \\[1cm]
+  
+    \centerline{\textcolor{ensiasdblue}{\rule{1.1\linewidth}{15pt}}}
+     
+\end{titlepage}

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StorePostulationRequest;
 use App\Http\Requests\UpdatePostulationStatusRequest;
 use App\Models\Application;
+use App\Models\CandidateProfileView;
 use App\Models\JobOffer;
 use App\Models\User;
 use App\Models\UserNotification;
@@ -14,6 +15,38 @@ use Illuminate\Support\Facades\Auth;
 
 class PostulationController extends Controller
 {
+    private const FREE_PROFILE_LIMIT = 1;
+
+    private function hasActivePremium(User $user): bool
+    {
+        return (bool) ($user->is_premium && $user->premium_expires_at && Carbon::parse($user->premium_expires_at)->isFuture());
+    }
+
+    private function latestFreeConsultation(User $recruteur): ?CandidateProfileView
+    {
+        /** @var CandidateProfileView|null $view */
+        $view = CandidateProfileView::where('recruteur_id', $recruteur->id)
+            ->where('viewed_at', '>=', Carbon::now()->subDay())
+            ->latest('viewed_at')
+            ->first();
+
+        return $view;
+    }
+
+    private function syncFreeQuotaDisplay(User $recruteur, ?CandidateProfileView $latestView = null): void
+    {
+        if ($this->hasActivePremium($recruteur)) {
+            return;
+        }
+
+        $latestView ??= $this->latestFreeConsultation($recruteur);
+
+        $recruteur->forceFill([
+            'vues_aujourdhui' => $latestView ? self::FREE_PROFILE_LIMIT : 0,
+            'derniere_vue_date' => $latestView?->viewed_at?->toDateString(),
+        ])->save();
+    }
+
     public function postuler(StorePostulationRequest $request, $id)
     {
         $offre = JobOffer::findOrFail($id);
@@ -106,28 +139,8 @@ class PostulationController extends Controller
             return response()->json(['success' => false, 'message' => 'Non autorise.'], 403);
         }
 
-        $isPremium = $user->is_premium && $user->premium_expires_at && Carbon::parse($user->premium_expires_at)->isFuture();
-        if (! $isPremium) {
-            $today = Carbon::today();
-            $alreadyViewedToday = $user->derniere_vue_date
-                && Carbon::parse($user->derniere_vue_date)->isSameDay($today);
-
-            if ($alreadyViewedToday && (int) $user->vues_aujourdhui >= 1) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Quota de vue depasse ! Limite a 1 profil par jour. Passez au Premium pour un acces illimite.',
-                ], 403);
-            }
-
-            if (! $alreadyViewedToday) {
-                $user->forceFill([
-                    'vues_aujourdhui' => 1,
-                    'derniere_vue_date' => $today->toDateString(),
-                ])->save();
-            }
-        }
-
-        $postulants = Application::with('candidat.candidatProfile')
+        $postulants = Application::with('candidat:id,name,email')
+            ->select(['id', 'job_offer_id', 'candidat_id', 'status', 'quiz_score', 'created_at', 'updated_at'])
             ->where('job_offer_id', $id)
             ->latest()
             ->paginate(10);
@@ -135,6 +148,64 @@ class PostulationController extends Controller
         return response()->json([
             'success' => true,
             'data' => $postulants,
+        ]);
+    }
+
+    public function consult($id)
+    {
+        $application = Application::with(['jobOffer', 'candidat.candidatProfile'])->findOrFail($id);
+
+        /** @var User $recruteur */
+        $recruteur = Auth::user();
+
+        if ($application->jobOffer->recruteur_id !== $recruteur->id) {
+            return response()->json(['success' => false, 'message' => 'Non autorise.'], 403);
+        }
+
+        if (! $this->hasActivePremium($recruteur)) {
+            $latestView = $this->latestFreeConsultation($recruteur);
+
+            if ($latestView && (int) $latestView->candidat_id !== (int) $application->candidat_id) {
+                $resetAt = Carbon::parse($latestView->viewed_at)->addDay();
+                $this->syncFreeQuotaDisplay($recruteur, $latestView);
+
+                return response()->json([
+                    'success' => false,
+                    'code' => 'quota_exceeded',
+                    'message' => 'Votre quota gratuit est épuisé. Passez Premium pour consulter des profils illimités.',
+                    'reset_at' => $resetAt,
+                    'quota' => [
+                        'is_premium' => false,
+                        'limit' => self::FREE_PROFILE_LIMIT,
+                        'used' => self::FREE_PROFILE_LIMIT,
+                        'remaining' => 0,
+                        'reset_at' => $resetAt,
+                    ],
+                ], 403);
+            }
+
+            if (! $latestView) {
+                $latestView = CandidateProfileView::create([
+                    'recruteur_id' => $recruteur->id,
+                    'candidat_id' => $application->candidat_id,
+                    'application_id' => $application->id,
+                    'viewed_at' => Carbon::now(),
+                ]);
+            }
+
+            $this->syncFreeQuotaDisplay($recruteur, $latestView);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $application,
+            'quota' => [
+                'is_premium' => $this->hasActivePremium($recruteur),
+                'limit' => self::FREE_PROFILE_LIMIT,
+                'used' => $this->hasActivePremium($recruteur) ? 0 : self::FREE_PROFILE_LIMIT,
+                'remaining' => $this->hasActivePremium($recruteur) ? null : 0,
+                'reset_at' => $this->hasActivePremium($recruteur) ? null : $this->latestFreeConsultation($recruteur)?->viewed_at?->copy()->addDay(),
+            ],
         ]);
     }
 

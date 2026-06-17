@@ -6,6 +6,7 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\UpdateMeRequest;
 use App\Models\User;
+use App\Support\AdminNotifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -58,6 +59,18 @@ class AuthController extends Controller
                 'contrat_prefere' => null,
             ]);
         }
+
+        $isRecruiter = $user->role === 'recruteur';
+        AdminNotifier::notify(
+            $isRecruiter ? 'admin_recruiter_registered' : 'admin_candidate_registered',
+            $isRecruiter ? 'Nouveau recruteur inscrit' : 'Nouveau candidat inscrit',
+            sprintf('%s vient de creer un compte %s.', $user->name, $isRecruiter ? 'recruteur' : 'candidat'),
+            [
+                'user_id' => $user->id,
+                'role' => $user->role,
+                'action_url' => '/admin/dashboard',
+            ],
+        );
 
         $token = $user->createToken('auth_token')->plainTextToken;
 

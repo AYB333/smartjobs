@@ -27,6 +27,10 @@ const itemVariants = {
     visible: { opacity: 1, y: 0 },
 };
 
+const RECOMMENDATION_CACHE_TTL = 90 * 1000;
+const recommendationCache = new Map();
+const recommendationRequests = new Map();
+
 const statusBadgeClasses = {
     en_attente: 'bg-amber-500/12 text-amber-300 border-amber-400/30',
     acceptee: 'bg-emerald-500/12 text-emerald-300 border-emerald-400/30',
@@ -304,31 +308,69 @@ function uniqueOffers(offers) {
     });
 }
 
+function getRecommendationCacheKey(profile) {
+    return [
+        profile?.ville,
+        profile?.poste_recherche,
+        profile?.contrat_prefere,
+    ].map((value) => normalize(value)).join('|') || 'default';
+}
+
 async function fetchRecommendationPool(profile) {
-    const requests = [
-        api.get('/offres', { params: { limit: 12 } }),
-    ];
+    const cacheKey = getRecommendationCacheKey(profile);
+    const cached = recommendationCache.get(cacheKey);
 
-    if (profile?.ville) {
-        requests.push(api.get('/offres', { params: { ville: profile.ville, limit: 12 } }));
+    if (cached && Date.now() - cached.timestamp < RECOMMENDATION_CACHE_TTL) {
+        return cached.offers;
     }
 
-    if (profile?.poste_recherche) {
-        requests.push(api.get('/offres', { params: { search: profile.poste_recherche, limit: 12 } }));
+    if (recommendationRequests.has(cacheKey)) {
+        return recommendationRequests.get(cacheKey);
     }
 
-    if (profile?.contrat_prefere) {
-        requests.push(api.get('/offres', { params: { type_contrat: profile.contrat_prefere, limit: 12 } }));
-    }
+    const request = (async () => {
+        const requests = [
+            api.get('/offres', { params: { limit: 12 } }),
+        ];
 
-    const responses = await Promise.allSettled(requests);
-    return uniqueOffers(
-        responses.flatMap((response) => (
-            response.status === 'fulfilled'
-                ? extractOffers(response.value?.data)
-                : []
-        ))
-    );
+        if (profile?.ville && profile?.poste_recherche) {
+            requests.push(api.get('/offres', {
+                params: {
+                    ville: profile.ville,
+                    search: profile.poste_recherche,
+                    limit: 12,
+                },
+            }));
+        } else if (profile?.ville) {
+            requests.push(api.get('/offres', { params: { ville: profile.ville, limit: 12 } }));
+        } else if (profile?.poste_recherche) {
+            requests.push(api.get('/offres', { params: { search: profile.poste_recherche, limit: 12 } }));
+        }
+
+        const responses = await Promise.allSettled(requests);
+        const offers = uniqueOffers(
+            responses.flatMap((response) => (
+                response.status === 'fulfilled'
+                    ? extractOffers(response.value?.data)
+                    : []
+            ))
+        );
+
+        recommendationCache.set(cacheKey, {
+            timestamp: Date.now(),
+            offers,
+        });
+
+        return offers;
+    })();
+
+    recommendationRequests.set(cacheKey, request);
+
+    try {
+        return await request;
+    } finally {
+        recommendationRequests.delete(cacheKey);
+    }
 }
 
 function RecommendedJobCard({ offer, profile, t }) {
@@ -498,7 +540,21 @@ export default function CandidatDashboard() {
     const [currentUser, setCurrentUser] = useState(() => parseStoredUser());
     const [chatApplication, setChatApplication] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [recommendationsLoading, setRecommendationsLoading] = useState(false);
     const [error, setError] = useState('');
+
+    const loadRecommendations = useCallback(async (profile) => {
+        setRecommendationsLoading(true);
+
+        try {
+            const recommendedPool = await fetchRecommendationPool(profile);
+            setOfferPool(recommendedPool);
+        } catch {
+            setOfferPool([]);
+        } finally {
+            setRecommendationsLoading(false);
+        }
+    }, []);
 
     const loadDashboard = useCallback(async () => {
         setLoading(true);
@@ -506,7 +562,7 @@ export default function CandidatDashboard() {
 
         try {
             const [applicationsResponse, meResponse, savedResponse] = await Promise.all([
-                api.get('/mes-postulations'),
+                api.get('/mes-postulations', { params: { limit: 100 } }),
                 api.get('/auth/me').catch(() => null),
                 api.get('/saved-offers').catch(() => null),
             ]);
@@ -514,17 +570,17 @@ export default function CandidatDashboard() {
             const loadedApplications = extractApplications(applicationsResponse?.data);
             const user = meResponse?.data?.user ?? parseStoredUser();
             const profile = getCandidateProfile(user);
-            const recommendedPool = await fetchRecommendationPool(profile);
             const loadedSavedOffers = extractSavedOffers(savedResponse?.data).filter((offer) => isActiveOffer(offer));
 
             setApplications(loadedApplications);
-            setOfferPool(recommendedPool);
             setSavedOffers(loadedSavedOffers);
 
             if (user) {
                 setCurrentUser(user);
                 localStorage.setItem('user', JSON.stringify(user));
             }
+
+            loadRecommendations(profile);
         } catch (requestError) {
             setError(
                 requestError?.response?.data?.message
@@ -533,7 +589,7 @@ export default function CandidatDashboard() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [loadRecommendations]);
 
     useEffect(() => {
         const timeoutId = window.setTimeout(() => {
@@ -549,11 +605,9 @@ export default function CandidatDashboard() {
         };
 
         window.addEventListener('smartjobs:user-updated', syncProfile);
-        window.addEventListener('focus', syncProfile);
 
         return () => {
             window.removeEventListener('smartjobs:user-updated', syncProfile);
-            window.removeEventListener('focus', syncProfile);
         };
     }, [loadDashboard]);
 
@@ -766,10 +820,8 @@ export default function CandidatDashboard() {
                         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
                             <section className="space-y-6">
                                 <motion.section
-                                    id="mes-candidatures"
-                                    tabIndex={-1}
                                     variants={itemVariants}
-                                    className="scroll-mt-28 rounded-3xl border border-borderGlass bg-surface p-5 shadow-[0_18px_55px_rgba(0,0,0,0.12)] outline-none transition-shadow focus-visible:shadow-[0_0_0_3px_rgba(232,101,26,0.28),0_18px_55px_rgba(0,0,0,0.12)] md:p-6"
+                                    className="rounded-3xl border border-borderGlass bg-surface p-5 shadow-[0_18px_55px_rgba(0,0,0,0.12)] md:p-6"
                                 >
                                     <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                                         <div>
@@ -797,6 +849,11 @@ export default function CandidatDashboard() {
                                                 Compléter mon profil
                                             </Link>
                                         </div>
+                                    ) : recommendationsLoading ? (
+                                        <div className="rounded-2xl border border-dashed border-borderGlass bg-white/5 px-5 py-9 text-center">
+                                            <div className="mx-auto mb-3 h-7 w-7 animate-spin rounded-full border-2 border-white/20 border-t-accent" />
+                                            <p className="text-sm font-semibold text-white/70">{t('common.loading')}</p>
+                                        </div>
                                     ) : recommendedOffers.length === 0 ? (
                                         <div className="rounded-2xl border border-dashed border-borderGlass bg-white/5 px-5 py-9 text-center">
                                             <p className="font-semibold text-white">{t('jobs.emptyTitle')}</p>
@@ -820,8 +877,10 @@ export default function CandidatDashboard() {
                                 </motion.section>
 
                                 <motion.section
+                                    id="mes-candidatures"
+                                    tabIndex={-1}
                                     variants={itemVariants}
-                                    className="rounded-3xl border border-borderGlass bg-surface p-5 shadow-[0_18px_55px_rgba(0,0,0,0.12)] md:p-6"
+                                    className="scroll-mt-28 rounded-3xl border border-borderGlass bg-surface p-5 shadow-[0_18px_55px_rgba(0,0,0,0.12)] outline-none transition-shadow focus-visible:shadow-[0_0_0_3px_rgba(232,101,26,0.28),0_18px_55px_rgba(0,0,0,0.12)] md:p-6"
                                 >
                                     <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                                         <div>

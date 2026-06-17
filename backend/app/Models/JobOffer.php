@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * @property int $id
@@ -39,11 +38,13 @@ class JobOffer extends Model
             return null;
         }
 
-        $url = Storage::disk('public')->url($this->image_path);
+        $url = '/storage/'.ltrim($this->image_path, '/');
 
-        return str_starts_with($url, 'http://') || str_starts_with($url, 'https://')
-            ? $url
-            : asset($url);
+        if (app()->runningInConsole()) {
+            return asset($url);
+        }
+
+        return rtrim(request()->getSchemeAndHttpHost(), '/').$url;
     }
 
     public function getEstablishmentNameAttribute(): ?string

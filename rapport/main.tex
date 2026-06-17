@@ -1,0 +1,243 @@
+\documentclass[12pt, a4paper]{report}
+
+% ==================================================================
+% PACKAGES
+% ==================================================================
+\usepackage[left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm]{geometry}  % Marges
+\usepackage[T1]{fontenc}
+\usepackage{times} % Police Times New Roman
+\usepackage[french]{babel}
+\usepackage{graphicx}
+\usepackage{setspace} % Pour l'interligne
+\usepackage{titlesec} % Pour personnaliser les titres
+\usepackage{url}
+\usepackage{xcolor} % Pour utiliser des couleurs personnalisées
+\usepackage{caption}
+\usepackage{fancyhdr}
+\usepackage{tocbibind}
+\usepackage{placeins}
+\usepackage{longtable}
+\usepackage{verbatim}
+\usepackage{array}
+\usepackage[pdftex,
+            colorlinks=true,
+            linkcolor=blue,
+            urlcolor=blue,
+            citecolor=blue,
+            bookmarks=true,
+            bookmarksopen=true]{hyperref}
+\usepackage{subcaption}
+
+
+
+
+\usepackage{listings}
+
+% Configuration des listings
+\lstset{
+    backgroundcolor=\color{gray!10},
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!60!black},
+    stringstyle=\color{orange},
+    showstringspaces=false,
+    tabsize=2,
+    captionpos=b
+}
+
+\lstdefinestyle{javascript}{
+    language=JavaScript,
+    morekeywords={const, let, var, async, await, try, catch, console, error, export, import, from, type, interface},
+    morecomment=[l]{//},
+    morecomment=[s]{/*}{*/}
+}
+\lstdefinestyle{python}{
+    language=Python,
+    morekeywords={async, await, Optional, Session, Depends, UploadFile, File, Form},
+    morecomment=[l]{\#},
+    commentstyle=\color{green!60!black},
+}
+% --- DÉFINITION DE LA COULEUR BLEUE DE L'ÉCOLE ---
+%==================================================================
+\definecolor{ensiasdblue}{RGB}{68,114, 196}
+
+% --- AJOUTEZ CETTE LIGNE ICI ---
+\setcounter{secnumdepth}{3} % Numérote jusqu'au niveau subsubsection
+\setcounter{tocdepth}{2} % Mais n'inclut dans la table des matières que jusqu'au niveau subsection
+
+% ==================================================================
+% CONFIGURATION DES FORMATS (Selon le guide ENSIASD)
+% ==================================================================
+\onehalfspacing % Interligne 1,5
+
+% Formatage des titres de chapitres (Alignés à droite comme demandé par le guide)
+\titleformat{\chapter}[block] 
+  {\normalfont\fontsize{16}{20}\bfseries\flushright}
+  {CHAPITRE \Roman{chapter} :} % Numéro en chiffres romains
+  {0.5em} % espace entre le numéro et le titre
+  {\MakeUppercase} % Met le titre en majuscules
+\titlespacing*{\chapter}{0pt}{0pt}{54pt}
+
+% Formatage des sections
+\titleformat{\section}
+  {\normalfont\fontsize{14}{16}\bfseries}
+  {\Roman{section}.}
+  {1em}
+  {}
+\titlespacing*{\section}{0pt}{12pt}{12pt}
+
+% Formatage des sous-sections
+\titleformat{\subsection}
+  {\normalfont\fontsize{12}{14}\bfseries}
+  {\Roman{section}.\arabic{subsection}}
+  {1em}
+  {}
+\titlespacing*{\subsection}{0pt}{6pt}{6pt}
+
+% Formatage des subsubsections
+\titleformat{\subsubsection}
+  {\normalfont\fontsize{12}{14}\bfseries}
+  {\Roman{section}.\arabic{subsection}.\arabic{subsubsection}}
+  {1em}
+  {}
+\titlespacing*{\subsubsection}{0pt}{6pt}{6pt}
+
+\renewcommand{\thechapter}{\Roman{chapter}}
+\renewcommand{\thesection}{\thechapter.\arabic{section}}\renewcommand{\thesubsection}{\thesection.\arabic{subsection}}
+\renewcommand{\thesubsubsection}{\thesubsection.\arabic{subsubsection}}
+
+
+
+% Configuration des légendes
+\captionsetup[figure]{
+    labelsep=colon, 
+    justification=centering, 
+    font={small,it}, % Changed to 'small' for font size 11
+    name=Figure, 
+    skip=6pt
+}
+\captionsetup[table]{
+    labelsep=colon, 
+    justification=centering, 
+    font={small}, % Changed to 'small' for font size 11
+    name=Tableau, 
+    position=top, 
+    skip=6pt
+}
+\captionsetup[longtable]{
+    labelsep=colon, 
+    justification=centering, 
+    font={small}, % Changed to 'small' for font size 11
+    name=Tableau, 
+    position=top, 
+    skip=6pt
+}
+
+% ==================================================================
+% INFORMATIONS DU DOCUMENT
+% ==================================================================
+\newcommand{\filiere}{Ingénierie Logicielle}
+\newcommand{\theme}{SmartJobs : Plateforme web de recrutement pour le secteur CHR au Maroc}
+\newcommand{\projectName}{SmartJobs}
+\newcommand{\etudiant}{Abdelkbir Nainiaa}
+\newcommand{\dateSoutenance}{[Date à compléter]}
+\newcommand{\heureSoutenance}{[Heure à compléter]}
+\newcommand{\entreprise}{[Nom de l'entreprise d'accueil]}
+\newcommand{\anneeU}{2025-2026}
+
+% Jury (à compléter)
+\newcommand{\president}{Pr. Said AIT TEMGHART}
+\newcommand{\examinateurUn}{Pr. Loubna KARBIL}
+\newcommand{\examinateurDeux}{Pr. Fadila EL BICHRI }
+
+
+
+% ==================================================================
+% CONFIGURATION DES EN-TÊTES ET PIEDS DE PAGE
+% ==================================================================
+% Définir un style de mark personnalisé
+\makeatletter
+\renewcommand{\chaptermark}[1]{%
+  \markboth{Chapitre \thechapter  :  #1}{}}
+\makeatother
+
+\fancyhf{} 
+\fancyhead[L]{\textbf{\leftmark}} % Ici, ça prendra le style défini ci-dessus
+\fancyfoot[R]{\thepage} 
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\renewcommand{\labelitemi}{$\bullet$}
+\sloppy
+
+\newcommand{\screenshotplaceholder}[2]{%
+\begin{figure}[htbp]
+    \centering
+    \fbox{%
+        \begin{minipage}[c][6cm][c]{0.86\textwidth}
+            \centering
+            \textbf{Capture d'écran à insérer}\\[0.3cm]
+            #2
+        \end{minipage}
+    }
+    \caption{#2}
+    \label{#1}
+\end{figure}
+}
+
+
+% ==================================================================
+% DOCUMENT PRINCIPAL
+% ==================================================================
+\begin{document}
+
+% Page de garde
+\input{title_page}
+
+\newpage
+\thispagestyle{empty}
+\mbox{}
+\newpage
+
+% Sections préliminaires (Dédicaces, Remerciements, Résumé, etc.)
+% Pas de numérotation de page ici
+\pagenumbering{gobble}
+\input{0_preliminaires}
+
+% Contenu principal du rapport
+% La numérotation commence à partir de l'introduction générale
+\clearpage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+\pagestyle{fancy}
+
+% Introduction Générale
+\input{1_introduction}
+
+% Chapitre 1: Contexte du Stage et Problématique
+ \input{2_chapitre1}
+
+% Chapitre 2: Méthodologie et Outils
+\input{3_chapitre2}
+
+% Chapitre 3: Analyse et Spécification des Besoins
+\input{4_chapitre3}
+
+% Chapitre 4: Conception et Architecture du Système
+\input{5_chapitre4}
+
+% Chapitre 5: Réalisation et Implémentation
+\input{6_chapitre5}
+
+% Chapitre 6: Résultats et Validation
+
+% Conclusion Générale
+\input{8_conclusion}
+
+% Bibliographie et Annexes
+\input{9_post}
+\end{document}

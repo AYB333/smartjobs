@@ -1,0 +1,104 @@
+\chapter{Réalisation et implémentation}
+
+\section{Mise en place du projet}
+
+\noindent
+Le projet \projectName{} est organisé en deux applications complémentaires. Le dossier frontend contient l'application React/Vite, tandis que le dossier backend contient l'API Laravel. Cette séparation permet d'isoler l'interface utilisateur de la logique métier et facilite les tests.
+
+\subsection{Frontend}
+
+\noindent
+Le frontend contient les pages publiques, les espaces candidats, recruteurs et administrateurs, ainsi que les composants partagés. Les appels API sont centralisés à travers une configuration Axios utilisant une variable d'environnement pour l'URL de l'API.
+
+\subsection{Backend}
+
+\noindent
+Le backend Laravel gère les routes API, les contrôleurs, les modèles, les migrations, les validations et les tests. Il applique les règles métier liées aux candidatures, au quiz, aux rôles, aux notifications et à la modération.
+
+\section{Interface publique}
+
+\noindent
+L'interface publique permet de présenter la plateforme, d'effectuer une recherche et de consulter les offres disponibles. La page d'accueil met en avant la proposition de valeur de SmartJobs pour les candidats et les recruteurs du secteur CHR.
+
+\screenshotplaceholder{fig:home_smartjobs}{Page d'accueil de SmartJobs}
+
+\noindent
+La page des offres propose une liste filtrable avec tri, filtres actifs, cartes horizontales et affichage d'une image d'établissement ou d'un visuel par défaut.
+
+\screenshotplaceholder{fig:jobs_smartjobs}{Liste des offres disponibles}
+
+\section{Espace candidat}
+
+\subsection{Profil candidat}
+
+\noindent
+Le profil candidat est conçu comme un assistant de préparation à la candidature. Il contient les informations professionnelles, les préférences, le CV et la photo optionnelle. Les choix importants sont contrôlés par des listes afin de rendre les recommandations plus fiables.
+
+\screenshotplaceholder{fig:profile_candidat}{Profil candidat avec CV et préférences}
+
+\subsection{Postulation et quiz}
+
+\noindent
+Lorsqu'un candidat postule, le système vérifie que son profil et son CV sont prêts. La candidature est ensuite créée en réutilisant le CV déjà stocké dans le profil. Si un quiz est associé à l'offre, le candidat le passe après la création de la candidature. Cette logique évite de bloquer la postulation et garantit que le quiz met à jour la candidature existante.
+
+\screenshotplaceholder{fig:job_detail_apply}{Page détail d'une offre et bloc de candidature}
+
+\section{Espace recruteur}
+
+\subsection{Tableau de bord recruteur}
+
+\noindent
+Le tableau de bord recruteur permet de suivre les offres, les candidatures récentes, les statistiques principales et le quota de consultation des profils. L'objectif est de fournir une vue simple et opérationnelle pour gérer le recrutement.
+
+\screenshotplaceholder{fig:dashboard_recruteur}{Tableau de bord recruteur}
+
+\subsection{Gestion des candidatures}
+
+\noindent
+La page des candidatures permet au recruteur de filtrer les profils, consulter les CV, afficher les scores de quiz et accepter ou refuser les candidats. Lorsqu'une candidature est acceptée, une discussion simple devient disponible entre le candidat et le recruteur.
+
+\screenshotplaceholder{fig:candidatures_recruteur}{Gestion des candidatures reçues}
+
+\section{Espace administrateur}
+
+\noindent
+L'administrateur dispose d'un tableau de bord de supervision. Il peut consulter les statistiques globales, filtrer les utilisateurs et modérer les offres. La suspension d'une offre peut inclure un motif optionnel, ce qui rend l'action plus claire pour le suivi administratif.
+
+\screenshotplaceholder{fig:dashboard_admin}{Tableau de bord administrateur}
+
+\section{Notifications et discussion}
+
+\noindent
+Un système de notifications internes informe les utilisateurs des événements importants : réception d'une candidature, acceptation ou refus, et nouvelles offres correspondant au profil. La discussion reste limitée aux candidatures acceptées afin de garder le périmètre fonctionnel maîtrisé.
+
+\section{Tests et validation}
+
+\noindent
+Plusieurs tests et vérifications ont été réalisés :
+
+\begin{itemize}
+    \item test de postulation sans quiz ;
+    \item test de postulation avec quiz ;
+    \item test de protection contre les candidatures dupliquées ;
+    \item test du candidat sans CV ;
+    \item test d'acceptation et de refus par le recruteur ;
+    \item test de modération administrateur ;
+    \item test des droits d'accès selon les rôles ;
+    \item compilation frontend et lint.
+\end{itemize}
+
+\section{Difficultés rencontrées}
+
+\noindent
+Plusieurs difficultés ont été rencontrées durant la réalisation :
+
+\begin{itemize}
+    \item synchroniser correctement le profil candidat après sauvegarde ;
+    \item éviter les candidatures dupliquées côté backend et base de données ;
+    \item gérer le flux postulation puis quiz sans créer une deuxième candidature ;
+    \item rendre l'interface cohérente en mode sombre et en mode clair ;
+    \item garder une navigation claire entre les espaces candidat, recruteur et administrateur.
+\end{itemize}
+
+\noindent
+Ces difficultés ont été résolues progressivement à travers des corrections ciblées, des tests et une stabilisation complète des parcours de démonstration.

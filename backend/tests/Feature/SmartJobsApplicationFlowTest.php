@@ -329,6 +329,62 @@ class SmartJobsApplicationFlowTest extends TestCase
         $this->assertSame(0, UserNotification::where('user_id', $candidate->id)->whereNull('read_at')->count());
     }
 
+    public function test_admin_is_notified_when_candidate_and_recruiter_register(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->postJson('/api/auth/register', [
+            'name' => 'Nouveau Candidat',
+            'email' => 'nouveau.candidat@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+            'role' => 'candidat',
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('user_notifications', [
+            'user_id' => $admin->id,
+            'type' => 'admin_candidate_registered',
+            'title' => 'Nouveau candidat inscrit',
+        ]);
+
+        $this->postJson('/api/auth/register', [
+            'name' => 'Nouveau Recruteur',
+            'email' => 'nouveau.recruteur@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+            'role' => 'recruteur',
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('user_notifications', [
+            'user_id' => $admin->id,
+            'type' => 'admin_recruiter_registered',
+            'title' => 'Nouveau recruteur inscrit',
+        ]);
+    }
+
+    public function test_admin_is_notified_when_recruiter_creates_offer(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $recruiter = $this->recruiterWithProfile();
+
+        Sanctum::actingAs($recruiter);
+
+        $this->postJson('/api/offres', [
+            'titre_poste' => 'Serveur petit dejeuner',
+            'description' => 'Nous recherchons un serveur motive pour rejoindre notre equipe CHR.',
+            'ville' => 'Casablanca',
+            'salaire' => 4500,
+            'type_contrat' => 'CDI',
+            'duree_validite' => 30,
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('user_notifications', [
+            'user_id' => $admin->id,
+            'type' => 'admin_offer_created',
+            'title' => 'Nouvelle offre a verifier',
+        ]);
+    }
+
     public function test_accepted_application_chat_allows_only_participants(): void
     {
         $owner = $this->recruiterWithProfile();

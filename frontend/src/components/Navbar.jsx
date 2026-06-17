@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Bell, Check, CheckCheck, ChevronDown, Languages, Menu, Moon, Search, Sun, X } from 'lucide-react';
 import { useAppExperience } from '../context/useAppExperience';
@@ -142,6 +142,9 @@ export default function Navbar() {
     const [languageOpen, setLanguageOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [notificationsLoading, setNotificationsLoading] = useState(false);
+    const unreadCountLoadingRef = useRef(false);
+    const notificationsLoadingRef = useRef(false);
+    const lastUnreadCountFetchRef = useRef(0);
     const { t, theme, toggleTheme, language, languages, setLanguage } = useAppExperience();
     const navigate = useNavigate();
     const location = useLocation();
@@ -174,29 +177,46 @@ export default function Navbar() {
                 setNotificationCount(0);
                 setNotifications([]);
                 setNotificationOpen(false);
+                lastUnreadCountFetchRef.current = 0;
             }, 0);
 
             return () => window.clearTimeout(timeoutId);
         }
 
-        const refreshUnreadCount = async () => {
+        const refreshUnreadCount = async (force = false) => {
+            const now = Date.now();
+
+            if (!force && now - lastUnreadCountFetchRef.current < 45000) {
+                return;
+            }
+
+            if (unreadCountLoadingRef.current) {
+                return;
+            }
+
+            unreadCountLoadingRef.current = true;
+            lastUnreadCountFetchRef.current = now;
+
             try {
                 const response = await api.get('/notifications/unread-count');
                 setNotificationCount(Number(response?.data?.unread_count ?? 0));
             } catch {
                 setNotificationCount(0);
+            } finally {
+                unreadCountLoadingRef.current = false;
             }
         };
 
-        const timeoutId = window.setTimeout(refreshUnreadCount, 0);
-        const intervalId = window.setInterval(refreshUnreadCount, 30000);
+        const timeoutId = window.setTimeout(() => refreshUnreadCount(true), 0);
+        const intervalId = window.setInterval(() => refreshUnreadCount(true), 60000);
+        const handleFocus = () => refreshUnreadCount(false);
 
-        window.addEventListener('focus', refreshUnreadCount);
+        window.addEventListener('focus', handleFocus);
 
         return () => {
             window.clearTimeout(timeoutId);
             window.clearInterval(intervalId);
-            window.removeEventListener('focus', refreshUnreadCount);
+            window.removeEventListener('focus', handleFocus);
         };
     }, [currentUser]);
 
@@ -249,6 +269,11 @@ export default function Navbar() {
     };
 
     const loadNotifications = async () => {
+        if (notificationsLoadingRef.current) {
+            return;
+        }
+
+        notificationsLoadingRef.current = true;
         setNotificationsLoading(true);
 
         try {
@@ -258,6 +283,7 @@ export default function Navbar() {
         } catch {
             setNotifications([]);
         } finally {
+            notificationsLoadingRef.current = false;
             setNotificationsLoading(false);
         }
     };

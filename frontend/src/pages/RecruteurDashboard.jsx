@@ -244,10 +244,14 @@ export default function RecruteurDashboard() {
 
     const activeOffers = offers.filter((offer) => offer.status === 'active').length;
     const totalApplications = offers.reduce((accumulator, offer) => accumulator + getApplicationsCount(offer), 0);
-    const viewsToday = Number(currentUser?.vues_aujourdhui ?? 0);
     const dailyLimit = 1;
     const isPremium = Boolean(subscription?.is_premium);
-    const quotaUsed = Math.min(viewsToday, dailyLimit);
+    const quota = subscription?.quota || {};
+    const quotaUsed = isPremium ? 0 : Number(quota?.used ?? currentUser?.vues_aujourdhui ?? 0);
+    const quotaRemaining = isPremium ? null : Math.max(Number(quota?.remaining ?? dailyLimit - quotaUsed), 0);
+    const quotaResetAt = quota?.reset_at || null;
+    const quotaResetLabel = quotaResetAt ? formatDate(quotaResetAt) : null;
+    const viewsToday = quotaUsed;
     const quotaProgress = Math.min((quotaUsed / dailyLimit) * 100, 100);
 
     const filteredOffers = useMemo(() => {
@@ -577,8 +581,15 @@ export default function RecruteurDashboard() {
                                                 <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${quotaProgress}%` }} />
                                             </div>
                                             <p className="mt-3 text-sm text-white/62">
-                                                Le plan gratuit limite la consultation de profils. Passez premium pour debloquer un usage illimite.
+                                                {quotaRemaining > 0
+                                                    ? 'Il vous reste une consultation gratuite de profil candidat.'
+                                                    : 'Votre quota gratuit est epuise. Passez premium pour debloquer un usage illimite.'}
                                             </p>
+                                            {quotaResetLabel && quotaRemaining === 0 && (
+                                                <p className="mt-2 text-xs text-white/45">
+                                                    Renouvellement estime: {quotaResetLabel}
+                                                </p>
+                                            )}
                                             <Link
                                                 to="/recruteur/premium"
                                                 className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-accent/90"

@@ -41,16 +41,26 @@ html[data-theme='light'] body {
 
 html[data-theme='light'] .text-white { color: #101828 !important; }
 html[data-theme='light'] .text-white\/90 { color: rgba(15, 23, 42, 0.90) !important; }
+html[data-theme='light'] .text-white\/88 { color: rgba(15, 23, 42, 0.88) !important; }
 html[data-theme='light'] .text-white\/85 { color: rgba(15, 23, 42, 0.85) !important; }
 html[data-theme='light'] .text-white\/80 { color: rgba(15, 23, 42, 0.80) !important; }
+html[data-theme='light'] .text-white\/78 { color: rgba(15, 23, 42, 0.78) !important; }
+html[data-theme='light'] .text-white\/76 { color: rgba(15, 23, 42, 0.76) !important; }
 html[data-theme='light'] .text-white\/75 { color: rgba(15, 23, 42, 0.75) !important; }
+html[data-theme='light'] .text-white\/74 { color: rgba(15, 23, 42, 0.74) !important; }
+html[data-theme='light'] .text-white\/72 { color: rgba(15, 23, 42, 0.72) !important; }
 html[data-theme='light'] .text-white\/70 { color: rgba(15, 23, 42, 0.70) !important; }
+html[data-theme='light'] .text-white\/68 { color: rgba(15, 23, 42, 0.68) !important; }
 html[data-theme='light'] .text-white\/65 { color: rgba(15, 23, 42, 0.65) !important; }
+html[data-theme='light'] .text-white\/62 { color: rgba(15, 23, 42, 0.62) !important; }
 html[data-theme='light'] .text-white\/60 { color: rgba(15, 23, 42, 0.60) !important; }
+html[data-theme='light'] .text-white\/58 { color: rgba(15, 23, 42, 0.58) !important; }
 html[data-theme='light'] .text-white\/55 { color: rgba(15, 23, 42, 0.55) !important; }
 html[data-theme='light'] .text-white\/50 { color: rgba(15, 23, 42, 0.50) !important; }
 html[data-theme='light'] .text-white\/45 { color: rgba(15, 23, 42, 0.45) !important; }
+html[data-theme='light'] .text-white\/42 { color: rgba(15, 23, 42, 0.42) !important; }
 html[data-theme='light'] .text-white\/40 { color: rgba(15, 23, 42, 0.40) !important; }
+html[data-theme='light'] .text-white\/38 { color: rgba(15, 23, 42, 0.38) !important; }
 html[data-theme='light'] .text-white\/35 { color: rgba(15, 23, 42, 0.35) !important; }
 html[data-theme='light'] .text-white\/30 { color: rgba(15, 23, 42, 0.30) !important; }
 html[data-theme='light'] .placeholder-white\/40::placeholder { color: rgba(15, 23, 42, 0.40) !important; }
@@ -61,16 +71,26 @@ html[data-theme='light'] .hover\:bg-accent:hover { color: #ffffff !important; }
 html[data-theme='light'] .force-dark,
 html[data-theme='light'] .force-dark .text-white,
 html[data-theme='light'] .force-dark .text-white\/90,
+html[data-theme='light'] .force-dark .text-white\/88,
 html[data-theme='light'] .force-dark .text-white\/85,
 html[data-theme='light'] .force-dark .text-white\/80,
+html[data-theme='light'] .force-dark .text-white\/78,
+html[data-theme='light'] .force-dark .text-white\/76,
 html[data-theme='light'] .force-dark .text-white\/75,
+html[data-theme='light'] .force-dark .text-white\/74,
+html[data-theme='light'] .force-dark .text-white\/72,
 html[data-theme='light'] .force-dark .text-white\/70,
+html[data-theme='light'] .force-dark .text-white\/68,
 html[data-theme='light'] .force-dark .text-white\/65,
+html[data-theme='light'] .force-dark .text-white\/62,
 html[data-theme='light'] .force-dark .text-white\/60,
+html[data-theme='light'] .force-dark .text-white\/58,
 html[data-theme='light'] .force-dark .text-white\/55,
 html[data-theme='light'] .force-dark .text-white\/50,
 html[data-theme='light'] .force-dark .text-white\/45,
+html[data-theme='light'] .force-dark .text-white\/42,
 html[data-theme='light'] .force-dark .text-white\/40,
+html[data-theme='light'] .force-dark .text-white\/38,
 html[data-theme='light'] .force-dark .text-white\/35,
 html[data-theme='light'] .force-dark .text-white\/30 {
     color: #ffffff !important;
@@ -92,6 +112,17 @@ html[data-theme='light'] .bg-white\/5 { background-color: rgba(15, 23, 42, 0.04)
 html[data-theme='light'] .bg-white\/8 { background-color: rgba(15, 23, 42, 0.06) !important; }
 html[data-theme='light'] .bg-white\/10 { background-color: rgba(15, 23, 42, 0.08) !important; }
 html[data-theme='light'] .bg-white\/20 { background-color: rgba(15, 23, 42, 0.12) !important; }
+html[data-theme='light'] .bg-deepNavy,
+html[data-theme='light'] .bg-deepNavy\/90,
+html[data-theme='light'] .bg-deepNavy\/95,
+html[data-theme='light'] .bg-deepNavy\/98 {
+    background-color: rgba(255, 255, 255, 0.96) !important;
+}
+
+html[data-theme='light'] .bg-obsidian {
+    background-color: #eef2f7 !important;
+}
+
 html[data-theme='light'] .bg-obsidian\/40,
 html[data-theme='light'] .bg-obsidian\/50,
 html[data-theme='light'] .bg-obsidian\/55,
@@ -108,6 +139,135 @@ html[data-theme='light'] .border-white\/5 { border-color: rgba(15, 23, 42, 0.08)
 html[data-theme='light'] .border-white\/10 { border-color: rgba(15, 23, 42, 0.10) !important; }
 html[data-theme='light'] .border-white\/15 { border-color: rgba(15, 23, 42, 0.12) !important; }
 html[data-theme='light'] .border-white\/20 { border-color: rgba(15, 23, 42, 0.15) !important; }
+
+html[data-theme='light'] .text-emerald-100,
+html[data-theme='light'] .text-emerald-200,
+html[data-theme='light'] .text-emerald-300 {
+    color: #047857 !important;
+}
+
+html[data-theme='light'] .text-rose-100,
+html[data-theme='light'] .text-rose-200,
+html[data-theme='light'] .text-rose-300,
+html[data-theme='light'] .text-red-100,
+html[data-theme='light'] .text-red-200,
+html[data-theme='light'] .text-red-300 {
+    color: #be123c !important;
+}
+
+html[data-theme='light'] .text-amber-100,
+html[data-theme='light'] .text-amber-200,
+html[data-theme='light'] .text-amber-300,
+html[data-theme='light'] .text-yellow-100,
+html[data-theme='light'] .text-yellow-200,
+html[data-theme='light'] .text-yellow-300 {
+    color: #92400e !important;
+}
+
+html[data-theme='light'] .text-sky-100,
+html[data-theme='light'] .text-sky-200,
+html[data-theme='light'] .text-sky-300,
+html[data-theme='light'] .text-blue-100,
+html[data-theme='light'] .text-blue-200,
+html[data-theme='light'] .text-blue-300 {
+    color: #0369a1 !important;
+}
+
+html[data-theme='light'] .bg-emerald-500\/10,
+html[data-theme='light'] .bg-emerald-500\/12,
+html[data-theme='light'] .bg-emerald-500\/15,
+html[data-theme='light'] .bg-emerald-500\/20 {
+    background-color: rgba(16, 185, 129, 0.13) !important;
+}
+
+html[data-theme='light'] .bg-rose-500\/10,
+html[data-theme='light'] .bg-rose-500\/12,
+html[data-theme='light'] .bg-rose-500\/15,
+html[data-theme='light'] .bg-rose-500\/20,
+html[data-theme='light'] .bg-red-500\/10,
+html[data-theme='light'] .bg-red-500\/15 {
+    background-color: rgba(244, 63, 94, 0.11) !important;
+}
+
+html[data-theme='light'] .bg-amber-500\/10,
+html[data-theme='light'] .bg-amber-500\/12,
+html[data-theme='light'] .bg-amber-500\/15,
+html[data-theme='light'] .bg-amber-500\/20,
+html[data-theme='light'] .bg-yellow-500\/10,
+html[data-theme='light'] .bg-yellow-500\/15 {
+    background-color: rgba(245, 158, 11, 0.14) !important;
+}
+
+html[data-theme='light'] .bg-sky-500\/10,
+html[data-theme='light'] .bg-sky-500\/12,
+html[data-theme='light'] .bg-sky-500\/15,
+html[data-theme='light'] .bg-blue-500\/10,
+html[data-theme='light'] .bg-blue-500\/15 {
+    background-color: rgba(14, 165, 233, 0.12) !important;
+}
+
+html[data-theme='light'] .border-emerald-400\/25,
+html[data-theme='light'] .border-emerald-400\/30 {
+    border-color: rgba(4, 120, 87, 0.28) !important;
+}
+
+html[data-theme='light'] .border-rose-400\/25,
+html[data-theme='light'] .border-rose-400\/30,
+html[data-theme='light'] .border-red-400\/30 {
+    border-color: rgba(190, 18, 60, 0.25) !important;
+}
+
+html[data-theme='light'] .border-amber-400\/25,
+html[data-theme='light'] .border-amber-400\/30,
+html[data-theme='light'] .border-amber-400\/35,
+html[data-theme='light'] .border-yellow-400\/30 {
+    border-color: rgba(180, 83, 9, 0.28) !important;
+}
+
+html[data-theme='light'] .border-sky-400\/25,
+html[data-theme='light'] .border-sky-400\/30,
+html[data-theme='light'] .border-blue-400\/30 {
+    border-color: rgba(3, 105, 161, 0.24) !important;
+}
+
+html[data-theme='light'] .disabled\:opacity-45:disabled,
+html[data-theme='light'] .disabled\:opacity-50:disabled,
+html[data-theme='light'] .disabled\:opacity-55:disabled,
+html[data-theme='light'] .disabled\:opacity-60:disabled {
+    opacity: 0.68 !important;
+}
+
+html[data-theme='light'] .disabled\:opacity-70:disabled {
+    opacity: 0.76 !important;
+}
+
+html[data-theme='light'] .force-dark .bg-white\/5 { background-color: rgba(255, 255, 255, 0.05) !important; }
+html[data-theme='light'] .force-dark .bg-white\/10 { background-color: rgba(255, 255, 255, 0.10) !important; }
+html[data-theme='light'] .force-dark .bg-white\/20 { background-color: rgba(255, 255, 255, 0.20) !important; }
+
+html[data-theme='light'] .force-dark .text-emerald-100,
+html[data-theme='light'] .force-dark .text-emerald-200,
+html[data-theme='light'] .force-dark .text-emerald-300 {
+    color: #6ee7b7 !important;
+}
+
+html[data-theme='light'] .force-dark .text-rose-100,
+html[data-theme='light'] .force-dark .text-rose-200,
+html[data-theme='light'] .force-dark .text-rose-300 {
+    color: #fda4af !important;
+}
+
+html[data-theme='light'] .force-dark .text-amber-100,
+html[data-theme='light'] .force-dark .text-amber-200,
+html[data-theme='light'] .force-dark .text-amber-300 {
+    color: #fcd34d !important;
+}
+
+html[data-theme='light'] .force-dark .text-sky-100,
+html[data-theme='light'] .force-dark .text-sky-200,
+html[data-theme='light'] .force-dark .text-sky-300 {
+    color: #7dd3fc !important;
+}
 
 html[data-theme='light'] .home-landing {
     background:
@@ -185,6 +345,83 @@ html[data-theme='light'] .job-card-footer,
 html[data-theme='light'] .job-card-footer .text-white\/45,
 html[data-theme='light'] .job-card-footer .text-white\/60 {
     color: rgba(51, 65, 85, 0.72) !important;
+}
+
+html[data-theme='light'] .recruiter-status-pending {
+    background-color: rgba(245, 158, 11, 0.14) !important;
+    border-color: rgba(180, 83, 9, 0.28) !important;
+    color: #92400e !important;
+}
+
+html[data-theme='light'] .recruiter-status-accepted,
+html[data-theme='light'] .recruiter-score-success,
+html[data-theme='light'] .recruiter-action-success {
+    background-color: rgba(16, 185, 129, 0.13) !important;
+    border-color: rgba(4, 120, 87, 0.28) !important;
+    color: #047857 !important;
+}
+
+html[data-theme='light'] .recruiter-status-rejected,
+html[data-theme='light'] .recruiter-action-danger {
+    background-color: rgba(244, 63, 94, 0.11) !important;
+    border-color: rgba(190, 18, 60, 0.25) !important;
+    color: #be123c !important;
+}
+
+html[data-theme='light'] .recruiter-score-info {
+    background-color: rgba(14, 165, 233, 0.12) !important;
+    border-color: rgba(3, 105, 161, 0.24) !important;
+    color: #0369a1 !important;
+}
+
+html[data-theme='light'] .recruiter-action-success:hover {
+    background-color: rgba(16, 185, 129, 0.19) !important;
+}
+
+html[data-theme='light'] .recruiter-action-danger:hover {
+    background-color: rgba(244, 63, 94, 0.17) !important;
+}
+
+html[data-theme='light'] .recruiter-action-success:disabled,
+html[data-theme='light'] .recruiter-action-danger:disabled {
+    opacity: 0.72 !important;
+}
+
+html[data-theme='light'] .chat-modal {
+    background-color: rgba(255, 255, 255, 0.98) !important;
+    border-color: rgba(15, 23, 42, 0.12) !important;
+    box-shadow: 0 28px 90px rgba(15, 23, 42, 0.24) !important;
+}
+
+html[data-theme='light'] .chat-message-bubble {
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.055);
+}
+
+html[data-theme='light'] .chat-message-mine {
+    background-color: rgba(232, 101, 26, 0.13) !important;
+    border-color: rgba(232, 101, 26, 0.30) !important;
+    color: #7c2d12 !important;
+}
+
+html[data-theme='light'] .chat-message-other {
+    background-color: rgba(248, 250, 252, 0.96) !important;
+    border-color: rgba(15, 23, 42, 0.13) !important;
+    color: #0f172a !important;
+}
+
+html[data-theme='light'] .chat-input {
+    background-color: rgba(248, 250, 252, 0.92) !important;
+    border-color: rgba(15, 23, 42, 0.14) !important;
+    color: #0f172a !important;
+}
+
+html[data-theme='light'] .chat-input::placeholder {
+    color: rgba(51, 65, 85, 0.48) !important;
+}
+
+html[data-theme='light'] .chat-input:focus {
+    border-color: rgba(232, 101, 26, 0.52) !important;
+    box-shadow: 0 0 0 4px rgba(232, 101, 26, 0.10);
 }
 
 html[data-theme='light'] .salary-filter-field {
