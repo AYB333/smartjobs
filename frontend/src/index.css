@@ -2,20 +2,20 @@
 @import "tailwindcss";
 
 @theme {
-  --color-deepNavy: #0A2540;
-  --color-obsidian: #0B0F19;
+  --color-deepNavy: #111827;
+  --color-obsidian: #1E293B;
   --color-accent: #E8651A;
-  --color-surface: rgba(255, 255, 255, 0.04);
-  --color-borderGlass: rgba(255, 255, 255, 0.08);
-  --background-image-gradient-hero: linear-gradient(135deg, #0A2540 60%, rgba(232,101,26,0.15));
+  --color-surface: rgba(31, 41, 55, 0.86);
+  --color-borderGlass: rgba(255, 255, 255, 0.12);
+  --background-image-gradient-hero: linear-gradient(135deg, #1E293B 50%, rgba(232,101,26,0.22));
 }
 
 html[data-theme='light'] {
-  --color-deepNavy: #F7F8FB;
-  --color-obsidian: #EEF2F7;
-  --color-surface: rgba(255, 255, 255, 0.78);
-  --color-borderGlass: rgba(15, 23, 42, 0.12);
-  --background-image-gradient-hero: linear-gradient(135deg, rgba(247,248,251,0.92) 48%, rgba(232,101,26,0.14));
+  --color-deepNavy: #F8FAFC;
+  --color-obsidian: #F1F5F9;
+  --color-surface: #FFFFFF;
+  --color-borderGlass: #E2E8F0;
+  --background-image-gradient-hero: linear-gradient(135deg, rgba(248,250,252,0.98) 48%, rgba(232,101,26,0.13));
 }
 
 @keyframes fadeIn {
@@ -33,10 +33,18 @@ html[data-theme='light'] {
 
 body {
     @apply bg-deepNavy text-white font-sans overflow-x-hidden;
+    background:
+        radial-gradient(circle at 8% -10%, rgba(232, 101, 26, 0.18), transparent 32%),
+        radial-gradient(circle at 92% 4%, rgba(249, 115, 22, 0.12), transparent 28%),
+        linear-gradient(180deg, #111827 0%, #1e293b 52%, #111827 100%);
 }
 
 html[data-theme='light'] body {
     color: #0f172a;
+    background:
+        radial-gradient(circle at 8% -10%, rgba(232, 101, 26, 0.11), transparent 30%),
+        radial-gradient(circle at 92% 2%, rgba(249, 115, 22, 0.08), transparent 26%),
+        linear-gradient(180deg, #f8fafc 0%, #ffffff 46%, #f1f5f9 100%);
 }
 
 html[data-theme='light'] .text-white { color: #101828 !important; }
@@ -577,6 +585,555 @@ html[dir='rtl'] .rtl-flip {
 
 .text-balance {
     text-wrap: balance;
+}
+
+/* SmartJobs SaaS re-theme: visual-only layer, no component logic changes. */
+:root {
+    --sj-light-bg: #f8fafc;
+    --sj-light-bg-soft: #f1f5f9;
+    --sj-light-card: #ffffff;
+    --sj-light-text: #0f172a;
+    --sj-light-muted: #475569;
+    --sj-light-border: #e2e8f0;
+    --sj-dark-bg: #111827;
+    --sj-dark-bg-soft: #1e293b;
+    --sj-dark-card: #1f2937;
+    --sj-dark-card-raised: #273449;
+    --sj-dark-text: #f9fafb;
+    --sj-dark-muted: #cbd5e1;
+    --sj-dark-border: rgba(255, 255, 255, 0.12);
+    --sj-primary: #e8651a;
+    --sj-primary-strong: #f97316;
+    --sj-secondary: #f59e0b;
+    --sj-success: #10b981;
+    --sj-warning: #f59e0b;
+    --sj-danger: #ef4444;
+    --sj-gold: #f59e0b;
+    --sj-radius: 22px;
+}
+
+body::selection {
+    background: rgba(232, 101, 26, 0.30);
+    color: #ffffff;
+}
+
+.bg-accent,
+html[data-theme='light'] .bg-accent {
+    background-color: var(--sj-primary) !important;
+    background-image: linear-gradient(135deg, var(--sj-primary) 0%, var(--sj-primary-strong) 58%, var(--sj-secondary) 100%) !important;
+}
+
+.text-accent,
+html[data-theme='light'] .text-accent {
+    color: var(--sj-primary) !important;
+}
+
+.border-accent,
+.border-accent\/25,
+.border-accent\/30,
+.border-accent\/35,
+.border-accent\/40,
+.border-accent\/45,
+.border-accent\/50,
+.border-accent\/60,
+.border-accent\/80,
+html[data-theme='light'] .border-accent,
+html[data-theme='light'] .border-accent\/25,
+html[data-theme='light'] .border-accent\/30,
+html[data-theme='light'] .border-accent\/35,
+html[data-theme='light'] .border-accent\/40,
+html[data-theme='light'] .border-accent\/45,
+html[data-theme='light'] .border-accent\/50,
+html[data-theme='light'] .border-accent\/60,
+html[data-theme='light'] .border-accent\/80 {
+    border-color: rgba(232, 101, 26, 0.42) !important;
+}
+
+.bg-accent\/10,
+.bg-accent\/12,
+.bg-accent\/15,
+.bg-accent\/20,
+html[data-theme='light'] .bg-accent\/10,
+html[data-theme='light'] .bg-accent\/12,
+html[data-theme='light'] .bg-accent\/15,
+html[data-theme='light'] .bg-accent\/20 {
+    background-color: rgba(232, 101, 26, 0.12) !important;
+}
+
+.bg-surface {
+    background: linear-gradient(180deg, rgba(39, 52, 73, 0.94), rgba(31, 41, 55, 0.92)) !important;
+    border-color: var(--sj-dark-border) !important;
+    box-shadow: 0 20px 60px rgba(2, 6, 23, 0.20), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.bg-obsidian,
+.bg-obsidian\/40,
+.bg-obsidian\/50,
+.bg-obsidian\/55,
+.bg-obsidian\/60,
+.bg-obsidian\/65,
+.bg-obsidian\/70,
+.bg-obsidian\/80 {
+    background-color: rgba(17, 24, 39, 0.88) !important;
+}
+
+.bg-deepNavy,
+.bg-deepNavy\/90,
+.bg-deepNavy\/95,
+.bg-deepNavy\/98 {
+    background-color: rgba(30, 41, 59, 0.94) !important;
+}
+
+.border-borderGlass {
+    border-color: var(--sj-dark-border) !important;
+}
+
+.text-white\/90,
+.text-white\/88,
+.text-white\/85,
+.text-white\/80,
+.text-white\/78,
+.text-white\/76,
+.text-white\/75,
+.text-white\/74,
+.text-white\/72,
+.text-white\/70 {
+    color: rgba(249, 250, 251, 0.86) !important;
+}
+
+.text-white\/68,
+.text-white\/65,
+.text-white\/62,
+.text-white\/60,
+.text-white\/58,
+.text-white\/55,
+.text-white\/50,
+.text-white\/45,
+.text-white\/42,
+.text-white\/40,
+.text-white\/38,
+.text-white\/35,
+.text-white\/30 {
+    color: rgba(203, 213, 225, 0.78) !important;
+}
+
+button,
+a {
+    transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+    transition-duration: 180ms;
+    transition-timing-function: ease;
+}
+
+button:hover:not(:disabled),
+a:hover {
+    transform: translateY(-1px);
+}
+
+button:active:not(:disabled),
+a:active {
+    transform: translateY(0);
+}
+
+.bg-accent:hover,
+.hover\:bg-accent:hover,
+.hover\:bg-accent\/90:hover {
+    filter: saturate(1.08) brightness(1.04);
+    box-shadow: 0 16px 42px rgba(232, 101, 26, 0.28) !important;
+}
+
+input,
+select,
+textarea,
+.auth-input,
+.chat-input,
+.salary-filter-field {
+    border-color: rgba(148, 163, 184, 0.18) !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+.auth-input:focus,
+.chat-input:focus,
+.salary-filter-field:focus-within,
+.focus\:border-accent\/50:focus,
+.focus\:border-accent\/60:focus,
+.focus-within\:border-accent\/50:focus-within,
+.focus-within\:border-accent\/60:focus-within {
+    border-color: rgba(232, 101, 26, 0.60) !important;
+    box-shadow: 0 0 0 4px rgba(232, 101, 26, 0.12) !important;
+}
+
+.rounded-3xl.border-borderGlass.bg-surface,
+.rounded-2xl.border-borderGlass.bg-surface,
+.job-card,
+.chat-modal,
+.salary-filter-field,
+.auth-form-shell,
+.home-feature-box,
+.home-featured-stat {
+    backdrop-filter: blur(18px);
+    border-color: var(--sj-dark-border) !important;
+    box-shadow: 0 20px 60px rgba(2, 6, 23, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
+}
+
+.job-card:hover,
+.rounded-3xl.border-borderGlass.bg-surface:hover {
+    border-color: rgba(232, 101, 26, 0.34) !important;
+    box-shadow: 0 24px 70px rgba(232, 101, 26, 0.12), 0 20px 60px rgba(2, 6, 23, 0.18) !important;
+}
+
+.fixed.top-0 {
+    background: rgba(17, 24, 39, 0.82) !important;
+    border-bottom-color: rgba(255, 255, 255, 0.10) !important;
+    box-shadow: 0 18px 50px rgba(2, 6, 23, 0.18);
+}
+
+.absolute.right-0.top-12,
+.pointer-events-auto.rounded-2xl,
+.pointer-events-auto.w-full.max-w-xl {
+    box-shadow: 0 28px 90px rgba(2, 6, 23, 0.34) !important;
+}
+
+.home-landing {
+    background:
+        radial-gradient(circle at 18% 4%, rgba(232, 101, 26, 0.16), transparent 28%),
+        radial-gradient(circle at 82% 12%, rgba(249, 115, 22, 0.11), transparent 24%),
+        linear-gradient(180deg, #111827 0%, #1e293b 48%, #111827 100%) !important;
+}
+
+.home-landing h1 {
+    letter-spacing: -0.01em;
+    text-shadow: 0 20px 70px rgba(2, 6, 23, 0.38);
+}
+
+.home-highlights-band,
+.home-jobs-section {
+    border-color: rgba(148, 163, 184, 0.16) !important;
+}
+
+.home-feature-box::before {
+    background: linear-gradient(180deg, var(--sj-primary), var(--sj-secondary)) !important;
+}
+
+.job-card-badge,
+[class*="rounded-full"][class*="border"] {
+    backdrop-filter: blur(12px);
+}
+
+.text-emerald-100,
+.text-emerald-200,
+.text-emerald-300,
+.recruiter-status-accepted,
+.recruiter-score-success,
+.recruiter-action-success {
+    color: #6ee7b7 !important;
+}
+
+.text-amber-100,
+.text-amber-200,
+.text-amber-300,
+.text-yellow-100,
+.text-yellow-200,
+.text-yellow-300,
+.recruiter-status-pending {
+    color: #fde68a !important;
+}
+
+.text-rose-100,
+.text-rose-200,
+.text-rose-300,
+.text-red-100,
+.text-red-200,
+.text-red-300,
+.recruiter-status-rejected,
+.recruiter-action-danger {
+    color: #fecdd3 !important;
+}
+
+.text-sky-100,
+.text-sky-200,
+.text-sky-300,
+.text-blue-100,
+.text-blue-200,
+.text-blue-300,
+.recruiter-score-info {
+    color: #7dd3fc !important;
+}
+
+.bg-emerald-500\/10,
+.bg-emerald-500\/12,
+.bg-emerald-500\/15,
+.bg-emerald-500\/20 {
+    background-color: rgba(16, 185, 129, 0.15) !important;
+}
+
+.bg-amber-500\/10,
+.bg-amber-500\/12,
+.bg-amber-500\/15,
+.bg-amber-500\/20,
+.bg-yellow-500\/10,
+.bg-yellow-500\/15 {
+    background-color: rgba(245, 158, 11, 0.15) !important;
+}
+
+.bg-rose-500\/10,
+.bg-rose-500\/12,
+.bg-rose-500\/15,
+.bg-rose-500\/20,
+.bg-red-500\/10,
+.bg-red-500\/15 {
+    background-color: rgba(239, 68, 68, 0.14) !important;
+}
+
+.bg-sky-500\/10,
+.bg-sky-500\/12,
+.bg-sky-500\/15,
+.bg-blue-500\/10,
+.bg-blue-500\/15 {
+    background-color: rgba(14, 165, 233, 0.14) !important;
+}
+
+html[data-theme='light'] .bg-surface {
+    background: var(--sj-light-card) !important;
+    border-color: var(--sj-light-border) !important;
+    box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08) !important;
+}
+
+html[data-theme='light'] .bg-obsidian,
+html[data-theme='light'] .bg-obsidian\/40,
+html[data-theme='light'] .bg-obsidian\/50,
+html[data-theme='light'] .bg-obsidian\/55,
+html[data-theme='light'] .bg-obsidian\/60,
+html[data-theme='light'] .bg-obsidian\/65,
+html[data-theme='light'] .bg-obsidian\/70,
+html[data-theme='light'] .bg-obsidian\/80 {
+    background-color: var(--sj-light-bg-soft) !important;
+}
+
+html[data-theme='light'] .bg-deepNavy,
+html[data-theme='light'] .bg-deepNavy\/90,
+html[data-theme='light'] .bg-deepNavy\/95,
+html[data-theme='light'] .bg-deepNavy\/98 {
+    background-color: rgba(255, 255, 255, 0.96) !important;
+}
+
+html[data-theme='light'] .border-borderGlass,
+html[data-theme='light'] .border-white\/5,
+html[data-theme='light'] .border-white\/10,
+html[data-theme='light'] .border-white\/15,
+html[data-theme='light'] .border-white\/20 {
+    border-color: var(--sj-light-border) !important;
+}
+
+html[data-theme='light'] .text-white {
+    color: var(--sj-light-text) !important;
+}
+
+html[data-theme='light'] .text-white\/90,
+html[data-theme='light'] .text-white\/88,
+html[data-theme='light'] .text-white\/85,
+html[data-theme='light'] .text-white\/80,
+html[data-theme='light'] .text-white\/78,
+html[data-theme='light'] .text-white\/76,
+html[data-theme='light'] .text-white\/75,
+html[data-theme='light'] .text-white\/74,
+html[data-theme='light'] .text-white\/72,
+html[data-theme='light'] .text-white\/70 {
+    color: rgba(15, 23, 42, 0.86) !important;
+}
+
+html[data-theme='light'] .text-white\/68,
+html[data-theme='light'] .text-white\/65,
+html[data-theme='light'] .text-white\/62,
+html[data-theme='light'] .text-white\/60,
+html[data-theme='light'] .text-white\/58,
+html[data-theme='light'] .text-white\/55,
+html[data-theme='light'] .text-white\/50,
+html[data-theme='light'] .text-white\/45,
+html[data-theme='light'] .text-white\/42,
+html[data-theme='light'] .text-white\/40,
+html[data-theme='light'] .text-white\/38,
+html[data-theme='light'] .text-white\/35,
+html[data-theme='light'] .text-white\/30 {
+    color: rgba(71, 85, 105, 0.86) !important;
+}
+
+html[data-theme='light'] .force-dark,
+html[data-theme='light'] .force-dark .text-white,
+html[data-theme='light'] .force-dark .text-white\/90,
+html[data-theme='light'] .force-dark .text-white\/80,
+html[data-theme='light'] .force-dark .text-white\/70,
+html[data-theme='light'] .force-dark .text-white\/60,
+html[data-theme='light'] .force-dark .text-white\/50,
+html[data-theme='light'] .force-dark .text-white\/40 {
+    color: #ffffff !important;
+}
+
+html[data-theme='light'] .fixed.top-0 {
+    background: rgba(255, 255, 255, 0.84) !important;
+    border-bottom-color: var(--sj-light-border) !important;
+    box-shadow: 0 12px 38px rgba(15, 23, 42, 0.08);
+}
+
+html[data-theme='light'] .home-landing {
+    background:
+        radial-gradient(circle at 15% 0%, rgba(232, 101, 26, 0.12), transparent 30%),
+        radial-gradient(circle at 82% 10%, rgba(249, 115, 22, 0.08), transparent 26%),
+        linear-gradient(180deg, #f8fafc 0%, #ffffff 44%, #f1f5f9 100%) !important;
+}
+
+html[data-theme='light'] .home-highlights-band {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.94)) !important;
+    border-color: var(--sj-light-border) !important;
+}
+
+html[data-theme='light'] .home-jobs-section {
+    background:
+        radial-gradient(circle at 15% 0%, rgba(232, 101, 26, 0.07), transparent 28%),
+        linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+}
+
+html[data-theme='light'] .home-feature-box,
+html[data-theme='light'] .home-featured-stat,
+html[data-theme='light'] .job-card,
+html[data-theme='light'] .chat-modal,
+html[data-theme='light'] .auth-form-shell,
+html[data-theme='light'] .salary-filter-field {
+    background: #ffffff !important;
+    border-color: var(--sj-light-border) !important;
+    box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08) !important;
+}
+
+html[data-theme='light'] .job-card:hover {
+    border-color: rgba(232, 101, 26, 0.32) !important;
+    box-shadow: 0 22px 58px rgba(232, 101, 26, 0.13), 0 18px 44px rgba(15, 23, 42, 0.08) !important;
+}
+
+html[data-theme='light'] .job-card-title,
+html[data-theme='light'] .home-feature-heading,
+html[data-theme='light'] .auth-title {
+    color: var(--sj-light-text) !important;
+}
+
+html[data-theme='light'] .job-card-company,
+html[data-theme='light'] .auth-subtitle,
+html[data-theme='light'] .auth-label,
+html[data-theme='light'] .site-footer {
+    color: var(--sj-light-muted) !important;
+}
+
+html[data-theme='light'] input,
+html[data-theme='light'] select,
+html[data-theme='light'] textarea,
+html[data-theme='light'] .auth-input,
+html[data-theme='light'] .chat-input,
+html[data-theme='light'] .salary-filter-field {
+    background: #ffffff !important;
+    border-color: var(--sj-light-border) !important;
+    color: var(--sj-light-text) !important;
+}
+
+html[data-theme='light'] input::placeholder,
+html[data-theme='light'] textarea::placeholder,
+html[data-theme='light'] .placeholder-white\/40::placeholder,
+html[data-theme='light'] .placeholder-white\/35::placeholder,
+html[data-theme='light'] .placeholder-white\/30::placeholder {
+    color: rgba(71, 85, 105, 0.62) !important;
+}
+
+html[data-theme='light'] .text-emerald-100,
+html[data-theme='light'] .text-emerald-200,
+html[data-theme='light'] .text-emerald-300,
+html[data-theme='light'] .recruiter-status-accepted,
+html[data-theme='light'] .recruiter-score-success,
+html[data-theme='light'] .recruiter-action-success {
+    color: #047857 !important;
+}
+
+html[data-theme='light'] .text-amber-100,
+html[data-theme='light'] .text-amber-200,
+html[data-theme='light'] .text-amber-300,
+html[data-theme='light'] .text-yellow-100,
+html[data-theme='light'] .text-yellow-200,
+html[data-theme='light'] .text-yellow-300,
+html[data-theme='light'] .recruiter-status-pending {
+    color: #92400e !important;
+}
+
+html[data-theme='light'] .text-rose-100,
+html[data-theme='light'] .text-rose-200,
+html[data-theme='light'] .text-rose-300,
+html[data-theme='light'] .text-red-100,
+html[data-theme='light'] .text-red-200,
+html[data-theme='light'] .text-red-300,
+html[data-theme='light'] .recruiter-status-rejected,
+html[data-theme='light'] .recruiter-action-danger {
+    color: #b91c1c !important;
+}
+
+html[data-theme='light'] .text-sky-100,
+html[data-theme='light'] .text-sky-200,
+html[data-theme='light'] .text-sky-300,
+html[data-theme='light'] .text-blue-100,
+html[data-theme='light'] .text-blue-200,
+html[data-theme='light'] .text-blue-300,
+html[data-theme='light'] .recruiter-score-info {
+    color: #0369a1 !important;
+}
+
+html[data-theme='light'] .auth-page {
+    background:
+        radial-gradient(circle at 12% 14%, rgba(232, 101, 26, 0.10), transparent 30%),
+        radial-gradient(circle at 45% 88%, rgba(249, 115, 22, 0.07), transparent 30%),
+        linear-gradient(135deg, #f8fafc 0%, #ffffff 44%, #f1f5f9 100%) !important;
+}
+
+html[data-theme='light'] .auth-role-card-selected,
+html[data-theme='light'] .auth-after-box {
+    background: linear-gradient(180deg, rgba(232, 101, 26, 0.12), rgba(255, 255, 255, 0.92)) !important;
+    border-color: rgba(232, 101, 26, 0.34) !important;
+}
+
+html[data-theme='light'] .force-dark .bg-surface {
+    background: linear-gradient(180deg, rgba(31, 41, 55, 0.92), rgba(17, 24, 39, 0.90)) !important;
+    border-color: rgba(255, 255, 255, 0.16) !important;
+    box-shadow: 0 24px 70px rgba(2, 6, 23, 0.30), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+
+html[data-theme='light'] .force-dark input,
+html[data-theme='light'] .force-dark select,
+html[data-theme='light'] .force-dark textarea {
+    background: transparent !important;
+    border-color: transparent !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+}
+
+html[data-theme='light'] .force-dark input::placeholder,
+html[data-theme='light'] .force-dark textarea::placeholder,
+html[data-theme='light'] .force-dark .placeholder-white\/40::placeholder,
+html[data-theme='light'] .force-dark .placeholder-white\/35::placeholder,
+html[data-theme='light'] .force-dark .placeholder-white\/30::placeholder {
+    color: rgba(255, 255, 255, 0.58) !important;
+}
+
+html[data-theme='light'] .force-dark .text-white,
+html[data-theme='light'] .force-dark .text-white\/90,
+html[data-theme='light'] .force-dark .text-white\/85,
+html[data-theme='light'] .force-dark .text-white\/80,
+html[data-theme='light'] .force-dark .text-white\/75,
+html[data-theme='light'] .force-dark .text-white\/70 {
+    color: rgba(255, 255, 255, 0.92) !important;
+}
+
+html[data-theme='light'] .force-dark .text-white\/65,
+html[data-theme='light'] .force-dark .text-white\/60,
+html[data-theme='light'] .force-dark .text-white\/55,
+html[data-theme='light'] .force-dark .text-white\/50,
+html[data-theme='light'] .force-dark .text-white\/45,
+html[data-theme='light'] .force-dark .text-white\/40 {
+    color: rgba(255, 255, 255, 0.66) !important;
 }
 
 ::-webkit-scrollbar { width: 8px; }

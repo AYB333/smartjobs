@@ -264,12 +264,12 @@ function ToastViewport({ toasts, dismissToast }) {
 }
 
 export function AppExperienceProvider({ children }) {
-    const [theme, setTheme] = useState(() => getInitialValue('smartjobs-theme', 'dark', ['dark', 'light']));
+    const [theme, setTheme] = useState(() => getInitialValue('smartjobs-theme', 'light', ['dark', 'light']));
     const [language, setLanguage] = useState(() => getInitialValue('smartjobs-language', 'fr', Object.keys(languages)));
     const [toasts, setToasts] = useState([]);
 
     useEffect(() => {
-        const metaTheme = theme === 'light' ? '#f7f8fb' : '#0B0F19';
+        const metaTheme = theme === 'light' ? '#F8FAFC' : '#111827';
         document.documentElement.dataset.theme = theme;
         window.localStorage.setItem('smartjobs-theme', theme);
 

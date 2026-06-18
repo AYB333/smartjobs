@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 
 export default function TextReveal({ text, className }) {
+    const hasArabicText = /[\u0600-\u06FF]/.test(text);
     const words = text.split(" ");
 
     const container = {
@@ -23,6 +24,21 @@ export default function TextReveal({ text, className }) {
             transition: { type: "spring", damping: 12, stiffness: 100 },
         },
     };
+
+    if (hasArabicText) {
+        return (
+            <motion.div
+                key={text}
+                className={className}
+                dir="auto"
+                initial={{ opacity: 0, y: 28 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ type: "spring", damping: 14, stiffness: 90 }}
+            >
+                {text}
+            </motion.div>
+        );
+    }
 
     return (
         <motion.div
