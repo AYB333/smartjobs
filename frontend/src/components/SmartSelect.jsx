@@ -52,7 +52,7 @@ export default function SmartSelect({
     };
 
     return (
-        <div ref={rootRef} className={`relative ${className}`}>
+        <div ref={rootRef} className={`relative ${open ? 'z-[90]' : 'z-0'} ${className}`}>
             {label && (
                 <span className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white/55">
                     {Icon && <Icon size={14} className="text-accent" />}

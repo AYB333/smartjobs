@@ -359,7 +359,7 @@ export default function CandidatProfile() {
                 ) : (
                     <form onSubmit={saveProfile} className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_390px]">
                         <section className="space-y-6">
-                            <div className="rounded-3xl border border-borderGlass bg-surface p-5 shadow-[0_18px_50px_rgba(0,0,0,0.12)] md:p-7">
+                            <div className="relative z-20 overflow-visible rounded-3xl border border-borderGlass bg-surface p-5 shadow-[0_18px_50px_rgba(0,0,0,0.12)] md:p-7">
                                 <div className="mb-6 border-b border-borderGlass pb-5">
                                     <p className="text-xs font-semibold uppercase tracking-wider text-accent">{t('candidate.profile.step1')}</p>
                                     <h2 className="mt-1 text-xl font-bold text-white">{t('candidate.profile.professionalInfo')}</h2>
@@ -407,7 +407,7 @@ export default function CandidatProfile() {
                                 </div>
                             </div>
 
-                            <div className="rounded-3xl border border-borderGlass bg-surface p-5 shadow-[0_18px_50px_rgba(0,0,0,0.12)] md:p-7">
+                            <div className="relative z-10 rounded-3xl border border-borderGlass bg-surface p-5 shadow-[0_18px_50px_rgba(0,0,0,0.12)] md:p-7">
                                 <div className="mb-6 border-b border-borderGlass pb-5">
                                     <p className="text-xs font-semibold uppercase tracking-wider text-accent">{t('candidate.profile.step2')}</p>
                                     <h2 className="mt-1 text-xl font-bold text-white">{t('candidate.profile.documents')}</h2>

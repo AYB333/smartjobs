@@ -262,7 +262,7 @@ export default function RecruteurProfile() {
                                 variants={itemVariants}
                                 initial="hidden"
                                 animate="visible"
-                                className="rounded-3xl border border-borderGlass bg-surface p-5 shadow-[0_18px_50px_rgba(0,0,0,0.12)] md:p-7"
+                                className="relative z-20 overflow-visible rounded-3xl border border-borderGlass bg-surface p-5 shadow-[0_18px_50px_rgba(0,0,0,0.12)] md:p-7"
                             >
                                 <div className="mb-6 border-b border-borderGlass pb-5">
                                     <p className="text-xs font-semibold uppercase tracking-wider text-accent">{t('recruiter.profile.identity')}</p>
@@ -306,7 +306,7 @@ export default function RecruteurProfile() {
                                 variants={itemVariants}
                                 initial="hidden"
                                 animate="visible"
-                                className="rounded-3xl border border-borderGlass bg-surface p-5 shadow-[0_18px_50px_rgba(0,0,0,0.12)] md:p-7"
+                                className="relative z-10 rounded-3xl border border-borderGlass bg-surface p-5 shadow-[0_18px_50px_rgba(0,0,0,0.12)] md:p-7"
                             >
                                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                                     <div>
